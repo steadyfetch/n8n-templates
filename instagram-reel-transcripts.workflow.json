@@ -1,0 +1,199 @@
+{
+  "id": "IgReelTranscripts01",
+  "name": "Instagram Reel Transcripts — profile reels → hooks & transcripts (free)",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "8c1a0001-0000-4000-8000-000000000001",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-440, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-token",
+              "name": "apifyToken",
+              "value": "PASTE_YOUR_APIFY_TOKEN_HERE",
+              "type": "string"
+            },
+            {
+              "id": "cfg-profile",
+              "name": "instagramProfile",
+              "value": "nike",
+              "type": "string"
+            },
+            {
+              "id": "cfg-max",
+              "name": "maxReels",
+              "value": 10,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8c1a0002-0000-4000-8000-000000000002",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-220, 0],
+      "notes": "instagramProfile = an Instagram username, profile URL, or direct reel URL. maxReels = how many reels to pull from the profile.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/apify~instagram-reel-scraper/runs?token={{ $('Config').first().json.apifyToken }}&waitForFinish=60",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ username: [$('Config').first().json.instagramProfile], resultsLimit: $('Config').first().json.maxReels }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "8c1a0003-0000-4000-8000-000000000003",
+      "name": "Scrape the profile's reels",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [0, 0],
+      "notes": "Starts apify/instagram-reel-scraper and waits up to 60s. Returns the run object — we only need data.defaultDatasetId. Any Instagram scraper whose rows carry videoUrl/audioUrl works: swap the actor slug + JSON body.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "run-finished",
+              "leftValue": "={{ ['SUCCEEDED', 'FAILED', 'ABORTED', 'TIMED-OUT'].includes($json.data.status) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8c1a0004-0000-4000-8000-000000000004",
+      "name": "Scrape finished?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/actor-runs/{{ $json.data.id }}?token={{ $('Config').first().json.apifyToken }}&waitForFinish=60",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "8c1a0005-0000-4000-8000-000000000005",
+      "name": "Wait for scrape (poll run)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 220],
+      "notes": "Loops back until the scraper run finishes (each poll waits up to 60s server-side).",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/steadyfetch~instagram-reel-transcript-scraper/run-sync-get-dataset-items?token={{ $('Config').first().json.apifyToken }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ datasetId: $json.data.defaultDatasetId, maxItems: $('Config').first().json.maxReels }) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "8c1a0006-0000-4000-8000-000000000006",
+      "name": "Transcribe reels by dataset ID — hooks & transcripts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "notes": "Chains steadyfetch/instagram-reel-transcript-scraper on the scraper run's dataset ID (no reel rows pass through n8n, so big batches stay light). One row per reel: transcript + first-3s hook + creator + caption. Charged only when a transcript is delivered.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// One spreadsheet-shaped row per reel. Transcribed reels first, longest first.\nconst rows = $input.all().map(({ json: reel }) => {\n  const transcript = reel.transcript || '';\n  const words = transcript.trim() ? transcript.trim().split(/\\s+/).length : 0;\n  return {\n    creator: reel.ownerUsername || '',\n    short_code: reel.shortCode || '',\n    status: reel.status || '',\n    hook_first_3s: reel.hook3s || '',\n    seconds: reel.durationSeconds ?? null,\n    transcript_words: words,\n    language: reel.language || '',\n    charged: reel.charged === true,\n    transcript,\n    caption: reel.caption || '',\n    post_url: reel.postUrl || '',\n    url_expires: reel.urlExpiresAt || '',\n    note: reel.statusReason || '',\n  };\n});\n\nrows.sort((a, b) => (b.status === 'transcribed') - (a.status === 'transcribed') || (b.seconds || 0) - (a.seconds || 0));\n\nreturn rows.map((row) => ({ json: row }));"
+      },
+      "id": "8c1a0007-0000-4000-8000-000000000007",
+      "name": "Reel rows — one per reel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "t-creator", "name": "creator", "value": "={{ $json.creator }}", "type": "string" },
+            { "id": "t-sc", "name": "short_code", "value": "={{ $json.short_code }}", "type": "string" },
+            { "id": "t-status", "name": "status", "value": "={{ $json.status }}", "type": "string" },
+            { "id": "t-hook", "name": "hook_first_3s", "value": "={{ $json.hook_first_3s }}", "type": "string" },
+            { "id": "t-sec", "name": "seconds", "value": "={{ $json.seconds }}", "type": "number" },
+            { "id": "t-words", "name": "transcript_words", "value": "={{ $json.transcript_words }}", "type": "number" },
+            { "id": "t-lang", "name": "language", "value": "={{ $json.language }}", "type": "string" },
+            { "id": "t-charged", "name": "charged", "value": "={{ $json.charged }}", "type": "boolean" },
+            { "id": "t-text", "name": "transcript", "value": "={{ $json.transcript }}", "type": "string" },
+            { "id": "t-caption", "name": "caption", "value": "={{ $json.caption }}", "type": "string" },
+            { "id": "t-url", "name": "post_url", "value": "={{ $json.post_url }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8c1a0008-0000-4000-8000-000000000008",
+      "name": "Reels table (CSV-ready — pipe to Sheets from here)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [880, 0],
+      "notes": "Terminal step: a clean spreadsheet-shaped row per reel. Wire Google Sheets / Airtable / Slack / a database after this node.",
+      "notesInFlow": true
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Config": {
+      "main": [[{ "node": "Scrape the profile's reels", "type": "main", "index": 0 }]]
+    },
+    "Scrape the profile's reels": {
+      "main": [[{ "node": "Scrape finished?", "type": "main", "index": 0 }]]
+    },
+    "Scrape finished?": {
+      "main": [
+        [{ "node": "Transcribe reels by dataset ID — hooks & transcripts", "type": "main", "index": 0 }],
+        [{ "node": "Wait for scrape (poll run)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait for scrape (poll run)": {
+      "main": [[{ "node": "Scrape finished?", "type": "main", "index": 0 }]]
+    },
+    "Transcribe reels by dataset ID — hooks & transcripts": {
+      "main": [[{ "node": "Reel rows — one per reel", "type": "main", "index": 0 }]]
+    },
+    "Reel rows — one per reel": {
+      "main": [[{ "node": "Reels table (CSV-ready — pipe to Sheets from here)", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

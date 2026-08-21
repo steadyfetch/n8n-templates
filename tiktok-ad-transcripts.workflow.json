@@ -1,0 +1,212 @@
+{
+  "id": "TikTokTopAdsTranscripts01",
+  "name": "TikTok Top Ads transcripts — Creative Center industry/region → hooks & transcripts (free)",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "7d3b0001-0000-4000-8000-000000000001",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-440, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-token",
+              "name": "apifyToken",
+              "value": "PASTE_YOUR_APIFY_TOKEN_HERE",
+              "type": "string"
+            },
+            {
+              "id": "cfg-country",
+              "name": "countryCode",
+              "value": "US",
+              "type": "string"
+            },
+            {
+              "id": "cfg-period",
+              "name": "period",
+              "value": "30",
+              "type": "string"
+            },
+            {
+              "id": "cfg-industry",
+              "name": "industry",
+              "value": "All industries",
+              "type": "string"
+            },
+            {
+              "id": "cfg-max",
+              "name": "maxAds",
+              "value": 25,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7d3b0002-0000-4000-8000-000000000002",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-220, 0],
+      "notes": "countryCode = Creative Center market (US, GB, DE, FR, SA, AE, JP, …). period = lookback window in days: 7, 30 or 180. industry = 'All industries' or one Creative Center industry name (e.g. 'Beauty & Personal Care (14000000000)'). maxAds = how many Top Ads to pull.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/azzouzana~tiktok-creative-center-top-ads-scraper/runs?token={{ $('Config').first().json.apifyToken }}&waitForFinish=60",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ countryCode: $('Config').first().json.countryCode, period: $('Config').first().json.period, industry: $('Config').first().json.industry, maxItems: $('Config').first().json.maxAds }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "7d3b0003-0000-4000-8000-000000000003",
+      "name": "Scrape Creative Center Top Ads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [0, 0],
+      "notes": "Starts azzouzana/tiktok-creative-center-top-ads-scraper and waits up to 60s. Returns the run object — we only need data.defaultDatasetId. To use another Creative Center scraper, swap the actor slug + the JSON body to its input fields.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "run-finished",
+              "leftValue": "={{ ['SUCCEEDED', 'FAILED', 'ABORTED', 'TIMED-OUT'].includes($json.data.status) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7d3b0004-0000-4000-8000-000000000004",
+      "name": "Scrape finished?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/actor-runs/{{ $json.data.id }}?token={{ $('Config').first().json.apifyToken }}&waitForFinish=60",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "7d3b0005-0000-4000-8000-000000000005",
+      "name": "Wait for scrape (poll run)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 220],
+      "notes": "Loops back until the scraper run finishes (each poll waits up to 60s server-side).",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/steadyfetch~tiktok-ads-transcript-scraper/run-sync-get-dataset-items?token={{ $('Config').first().json.apifyToken }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ datasetId: $json.data.defaultDatasetId, maxAds: $('Config').first().json.maxAds }) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "7d3b0006-0000-4000-8000-000000000006",
+      "name": "Transcribe Top Ads by dataset ID — hooks & transcripts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "notes": "Chains steadyfetch/tiktok-ads-transcript-scraper on the scraper run's dataset ID (no ad rows pass through n8n, so big batches stay light). Runs right after the scrape, while TikTok's ~6-hour video links are still fresh. One row per ad: transcript + first-3s hook + CTR/brand metadata. Charged only when a transcript is delivered.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// One teardown row per Top Ad. Transcribed ads first, highest CTR first.\nconst rows = $input.all().map(({ json: ad }) => {\n  const transcript = ad.transcript || '';\n  const words = transcript.trim() ? transcript.trim().split(/\\s+/).length : 0;\n  return {\n    brand: ad.brandName || '',\n    ad_title: ad.adTitle || '',\n    material_id: ad.materialId || '',\n    status: ad.status || '',\n    hook_first_3s: ad.hook3s || '',\n    ctr: ad.ctr ?? null,\n    likes: ad.likes ?? null,\n    seconds: ad.durationSeconds ?? null,\n    transcript_words: words,\n    language: ad.language || '',\n    charged: ad.charged === true,\n    transcript,\n    industry: ad.industryKey || '',\n    objective: ad.objectiveKey || '',\n    url_expires: ad.urlExpiresAt || '',\n    note: ad.statusReason || '',\n  };\n});\n\nrows.sort((a, b) => (b.status === 'transcribed') - (a.status === 'transcribed') || (b.ctr || 0) - (a.ctr || 0));\n\nreturn rows.map((row) => ({ json: row }));"
+      },
+      "id": "7d3b0007-0000-4000-8000-000000000007",
+      "name": "Teardown rows — one per ad",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "t-brand", "name": "brand", "value": "={{ $json.brand }}", "type": "string" },
+            { "id": "t-title", "name": "ad_title", "value": "={{ $json.ad_title }}", "type": "string" },
+            { "id": "t-id", "name": "material_id", "value": "={{ $json.material_id }}", "type": "string" },
+            { "id": "t-status", "name": "status", "value": "={{ $json.status }}", "type": "string" },
+            { "id": "t-hook", "name": "hook_first_3s", "value": "={{ $json.hook_first_3s }}", "type": "string" },
+            { "id": "t-ctr", "name": "ctr", "value": "={{ $json.ctr }}", "type": "number" },
+            { "id": "t-likes", "name": "likes", "value": "={{ $json.likes }}", "type": "number" },
+            { "id": "t-sec", "name": "seconds", "value": "={{ $json.seconds }}", "type": "number" },
+            { "id": "t-words", "name": "transcript_words", "value": "={{ $json.transcript_words }}", "type": "number" },
+            { "id": "t-lang", "name": "language", "value": "={{ $json.language }}", "type": "string" },
+            { "id": "t-charged", "name": "charged", "value": "={{ $json.charged }}", "type": "boolean" },
+            { "id": "t-text", "name": "transcript", "value": "={{ $json.transcript }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7d3b0008-0000-4000-8000-000000000008",
+      "name": "Top Ads table (CSV-ready — pipe to Sheets from here)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [880, 0],
+      "notes": "Terminal step: a clean spreadsheet-shaped row per ad. Wire Google Sheets / Airtable / Slack / a database after this node.",
+      "notesInFlow": true
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Config": {
+      "main": [[{ "node": "Scrape Creative Center Top Ads", "type": "main", "index": 0 }]]
+    },
+    "Scrape Creative Center Top Ads": {
+      "main": [[{ "node": "Scrape finished?", "type": "main", "index": 0 }]]
+    },
+    "Scrape finished?": {
+      "main": [
+        [{ "node": "Transcribe Top Ads by dataset ID — hooks & transcripts", "type": "main", "index": 0 }],
+        [{ "node": "Wait for scrape (poll run)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait for scrape (poll run)": {
+      "main": [[{ "node": "Scrape finished?", "type": "main", "index": 0 }]]
+    },
+    "Transcribe Top Ads by dataset ID — hooks & transcripts": {
+      "main": [[{ "node": "Teardown rows — one per ad", "type": "main", "index": 0 }]]
+    },
+    "Teardown rows — one per ad": {
+      "main": [[{ "node": "Top Ads table (CSV-ready — pipe to Sheets from here)", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
