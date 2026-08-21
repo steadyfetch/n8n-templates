@@ -1,0 +1,198 @@
+{
+  "id": "FbCompetitorTeardown01",
+  "name": "Competitor ad teardown — Facebook Ad Library page → hooks, CTAs & transcripts (free)",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "9b2f0001-0000-4000-8000-000000000001",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-440, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-token",
+              "name": "apifyToken",
+              "value": "PASTE_YOUR_APIFY_TOKEN_HERE",
+              "type": "string"
+            },
+            {
+              "id": "cfg-competitor",
+              "name": "competitorUrl",
+              "value": "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=US&media_type=video&q=nike&search_type=keyword_unordered",
+              "type": "string"
+            },
+            {
+              "id": "cfg-max",
+              "name": "maxAds",
+              "value": 25,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9b2f0002-0000-4000-8000-000000000002",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-220, 0],
+      "notes": "competitorUrl = a Facebook Ad Library search URL (set media_type=video) OR a competitor's Facebook Page URL (e.g. https://www.facebook.com/nike). maxAds = how many ads to pull.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/curious_coder~facebook-ads-library-scraper/runs?token={{ $('Config').first().json.apifyToken }}&waitForFinish=60",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ urls: [{ url: $('Config').first().json.competitorUrl }], count: $('Config').first().json.maxAds }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "9b2f0003-0000-4000-8000-000000000003",
+      "name": "Start Ad Library scrape (competitor)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [0, 0],
+      "notes": "Starts curious_coder/facebook-ads-library-scraper and waits up to 60s. Returns the run object — we only need data.defaultDatasetId. To use another Ad Library scraper, swap the actor slug + the JSON body to its input fields.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "run-finished",
+              "leftValue": "={{ ['SUCCEEDED', 'FAILED', 'ABORTED', 'TIMED-OUT'].includes($json.data.status) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9b2f0004-0000-4000-8000-000000000004",
+      "name": "Scrape finished?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/actor-runs/{{ $json.data.id }}?token={{ $('Config').first().json.apifyToken }}&waitForFinish=60",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "9b2f0005-0000-4000-8000-000000000005",
+      "name": "Wait for scrape (poll run)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 220],
+      "notes": "Loops back until the scraper run finishes (each poll waits up to 60s server-side).",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/steadyfetch~facebook-ads-transcript-scraper/run-sync-get-dataset-items?token={{ $('Config').first().json.apifyToken }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ datasetId: $json.data.defaultDatasetId, maxAds: $('Config').first().json.maxAds }) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "9b2f0006-0000-4000-8000-000000000006",
+      "name": "Transcribe ads by dataset ID — hooks & CTAs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "notes": "Chains steadyfetch/facebook-ads-transcript-scraper on the scraper run's dataset ID. One row per ad: transcript + first-3s hook + CTA + metadata. Charged only when a transcript is delivered.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// One teardown row per ad. Transcribed ads first, longest first.\nconst rows = $input.all().map(({ json: ad }) => {\n  const transcript = ad.transcript || '';\n  const words = transcript.trim() ? transcript.trim().split(/\\s+/).length : 0;\n  return {\n    advertiser: ad.pageName || '',\n    ad_id: ad.adArchiveId || '',\n    status: ad.status || '',\n    hook_first_3s: ad.hook3s || '',\n    cta: ad.ctaText || '',\n    seconds: ad.durationSeconds ?? null,\n    transcript_words: words,\n    transcript_chars: transcript.length,\n    language: ad.language || '',\n    charged: ad.charged === true,\n    transcript,\n    video_url: ad.videoUrl || '',\n    note: ad.statusReason || '',\n  };\n});\n\nrows.sort((a, b) => (b.status === 'transcribed') - (a.status === 'transcribed') || (b.seconds || 0) - (a.seconds || 0));\n\nreturn rows.map((row) => ({ json: row }));"
+      },
+      "id": "9b2f0007-0000-4000-8000-000000000007",
+      "name": "Teardown rows — one per ad",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "t-adv", "name": "advertiser", "value": "={{ $json.advertiser }}", "type": "string" },
+            { "id": "t-id", "name": "ad_id", "value": "={{ $json.ad_id }}", "type": "string" },
+            { "id": "t-status", "name": "status", "value": "={{ $json.status }}", "type": "string" },
+            { "id": "t-hook", "name": "hook_first_3s", "value": "={{ $json.hook_first_3s }}", "type": "string" },
+            { "id": "t-cta", "name": "cta", "value": "={{ $json.cta }}", "type": "string" },
+            { "id": "t-sec", "name": "seconds", "value": "={{ $json.seconds }}", "type": "number" },
+            { "id": "t-words", "name": "transcript_words", "value": "={{ $json.transcript_words }}", "type": "number" },
+            { "id": "t-lang", "name": "language", "value": "={{ $json.language }}", "type": "string" },
+            { "id": "t-charged", "name": "charged", "value": "={{ $json.charged }}", "type": "boolean" },
+            { "id": "t-text", "name": "transcript", "value": "={{ $json.transcript }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9b2f0008-0000-4000-8000-000000000008",
+      "name": "Teardown table (CSV-ready — pipe to Sheets from here)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [880, 0],
+      "notes": "Terminal step: a clean spreadsheet-shaped row per ad. Wire Google Sheets / Airtable / Slack / a database after this node.",
+      "notesInFlow": true
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Config": {
+      "main": [[{ "node": "Start Ad Library scrape (competitor)", "type": "main", "index": 0 }]]
+    },
+    "Start Ad Library scrape (competitor)": {
+      "main": [[{ "node": "Scrape finished?", "type": "main", "index": 0 }]]
+    },
+    "Scrape finished?": {
+      "main": [
+        [{ "node": "Transcribe ads by dataset ID — hooks & CTAs", "type": "main", "index": 0 }],
+        [{ "node": "Wait for scrape (poll run)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait for scrape (poll run)": {
+      "main": [[{ "node": "Scrape finished?", "type": "main", "index": 0 }]]
+    },
+    "Transcribe ads by dataset ID — hooks & CTAs": {
+      "main": [[{ "node": "Teardown rows — one per ad", "type": "main", "index": 0 }]]
+    },
+    "Teardown rows — one per ad": {
+      "main": [[{ "node": "Teardown table (CSV-ready — pipe to Sheets from here)", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
