@@ -42,7 +42,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [-220, 0],
-      "notes": "adLibraryUrl = a LinkedIn Ad Library search URL (https://www.linkedin.com/ad-library/search?accountOwner=…&countries=…&dateOption=…) or a company URL like https://www.linkedin.com/company/hubspot/. maxAds = how many ads to pull from the Ad Library (image ads included — only the video ones are transcribed).",
+      "notes": "adLibraryUrl = a LinkedIn Ad Library search URL (https://www.linkedin.com/ad-library/search?accountOwner=…&countries=…&dateOption=…) or a company URL like https://www.linkedin.com/company/hubspot/. maxAds = how many ads to pull from the Ad Library (video ads are transcribed; image ads have their on-image copy read).",
       "notesInFlow": true
     },
     {
@@ -125,7 +125,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [440, 0],
-      "notes": "Chains steadyfetch/linkedin-ads-transcript-scraper on the scraper run's dataset ID (no ad rows pass through n8n, so big batches stay light). Video ads come back transcribed (transcript + first-3s hook + advertiser metadata); image and text ads pass through as uncharged metadata rows. Charged only when a transcript is delivered.",
+      "notes": "Chains steadyfetch/linkedin-ads-transcript-scraper on the scraper run's dataset ID (no ad rows pass through n8n, so big batches stay light). Video ads come back transcribed (transcript + first-3s hook + advertiser metadata); image ads come back with their on-image copy read; document, carousel and text-only creatives pass through as uncharged metadata rows. Charged only when text is delivered.",
       "notesInFlow": true
     },
     {

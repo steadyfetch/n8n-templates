@@ -32,7 +32,7 @@ From the last node, wire anything you like: Google Sheets, Airtable, Slack, a da
 ### Cost
 
 - Ad scraping: [curious_coder/facebook-ads-library-scraper](https://apify.com/curious_coder/facebook-ads-library-scraper) — $0.75 / 1,000 ads
-- Transcription: [steadyfetch/facebook-ads-transcript-scraper](https://apify.com/steadyfetch/facebook-ads-transcript-scraper) — from $15.00 / 1,000 video ad transcripts, **charged only when a transcript is delivered**
+- Transcription: [steadyfetch/facebook-ads-transcript-scraper](https://apify.com/steadyfetch/facebook-ads-transcript-scraper) — from $10.00 / 1,000 ad creative transcripts, **charged only when a transcript is delivered**
 - A 20-ad test run ≈ **$0.42**. Apify's free $5 credit covers it many times over.
 
 ### Swap-friendly
@@ -111,7 +111,7 @@ The last node is a plain Set node (no credentials needed) — wire Google Sheets
 ### Cost
 
 - Reel scraping: [apify/instagram-reel-scraper](https://apify.com/apify/instagram-reel-scraper) — pay-per-event (≈ $2.60 / 1,000 reels at the time of writing; check its Pricing tab)
-- Transcription: [steadyfetch/instagram-reel-transcript-scraper](https://apify.com/steadyfetch/instagram-reel-transcript-scraper) — from $10.00 / 1,000 reel transcripts, **charged only when a transcript is delivered**
+- Transcription: [steadyfetch/instagram-reel-transcript-scraper](https://apify.com/steadyfetch/instagram-reel-transcript-scraper) — from $5.00 / 1,000 reel transcripts, **charged only when a transcript is delivered**
 - A 10-reel test run ≈ **$0.18**. Apify's free $5 credit covers it many times over.
 
 ### Swap the scraper
@@ -158,9 +158,9 @@ The last node is a plain Set node (no credentials needed) — wire Google Sheets
 
 ### Cost
 
-- Top Ads scraping: [azzouzana/tiktok-creative-center-top-ads-scraper](https://apify.com/azzouzana/tiktok-creative-center-top-ads-scraper) — $0.50 / 1,000 ads at the time of writing (check its Pricing tab)
-- Transcription: [steadyfetch/tiktok-ads-transcript-scraper](https://apify.com/steadyfetch/tiktok-ads-transcript-scraper) — from $15.00 / 1,000 ad video transcripts, **charged only when a transcript is delivered**
-- A 25-ad test run ≈ **$0.51 at most** (less when some ads are music-only). Apify's free $5 credit covers it many times over.
+- Top Ads scraping: [azzouzana/tiktok-creative-center-top-ads-scraper](https://apify.com/azzouzana/tiktok-creative-center-top-ads-scraper) — $1.00 / 1,000 ads at the time of writing (check its Pricing tab)
+- Transcription: [steadyfetch/tiktok-ads-transcript-scraper](https://apify.com/steadyfetch/tiktok-ads-transcript-scraper) — from $8.00 / 1,000 ad video transcripts, **charged only when a transcript is delivered**
+- A 25-ad test run ≈ **$0.53 at most** (less when some ads are music-only). Apify's free $5 credit covers it many times over.
 
 ### Swap the scraper
 
@@ -174,7 +174,7 @@ Creative Center video links expire about **6 hours** after the scraper minted th
 
 ## LinkedIn Ad Library transcripts — one advertiser → hooks & transcripts
 
-**What it does:** point it at one advertiser's [LinkedIn Ad Library](https://www.linkedin.com/ad-library/home) search URL (or a company URL) → scrapes their ads with [silva95gustavo/linkedin-ad-library-scraper](https://apify.com/silva95gustavo/linkedin-ad-library-scraper) → chains [steadyfetch/linkedin-ads-transcript-scraper](https://apify.com/steadyfetch/linkedin-ads-transcript-scraper) **by dataset ID** (no ad rows pass through n8n) → gives you a spreadsheet-shaped table: one row per ad with the **first-3-seconds hook**, headline, format, transcript length in words, language, seconds and the full transcript. Video ads are transcribed; image and text ads pass through uncharged with their metadata, sorted to the bottom.
+**What it does:** point it at one advertiser's [LinkedIn Ad Library](https://www.linkedin.com/ad-library/home) search URL (or a company URL) → scrapes their ads with [silva95gustavo/linkedin-ad-library-scraper](https://apify.com/silva95gustavo/linkedin-ad-library-scraper) → chains [steadyfetch/linkedin-ads-transcript-scraper](https://apify.com/steadyfetch/linkedin-ads-transcript-scraper) **by dataset ID** (no ad rows pass through n8n) → gives you a spreadsheet-shaped table: one row per ad with the **first-3-seconds hook**, headline, format, transcript length in words, language, seconds and the full transcript. Video ads are transcribed and image ads have their on-image copy read (both delivered rows, both charged); document, carousel, article and text-only creatives pass through uncharged with their metadata, sorted to the bottom.
 
 **[Download the workflow JSON →](./linkedin-ad-transcripts.workflow.json)**
 
@@ -193,12 +193,12 @@ Creative Center video links expire about **6 hours** after the scraper minted th
 | `headline` | "We are HubSpot Elite Partner" |
 | `ad_id` | 1508450294 |
 | `format` | SPONSORED_VIDEO |
-| `status` | `transcribed` (only these are charged) — image/text ads show `non_video_skipped` |
+| `status` | `transcribed` or `image_text_extracted` (these are the charged rows) — document, carousel, article and text-only ads show `non_video_skipped` |
 | `hook_first_3s` | "If your revenue team is working harder than ever, but closing less," |
 | `seconds` | 43.9 |
 | `transcript_words` | 112 |
 | `language` | English |
-| `charged` | `true` / `false` — image ads, silent creatives and blocked pages carry no result fee |
+| `charged` | `true` / `false` — text-free creatives, silent videos and blocked pages carry no result fee |
 | `transcript` | full speech-to-text, any video length |
 | `detail_url` | https://www.linkedin.com/ad-library/detail/1508450294 |
 
@@ -207,8 +207,8 @@ The last node is a plain Set node (no credentials needed) — wire Google Sheets
 ### Cost
 
 - Ad Library scraping: [silva95gustavo/linkedin-ad-library-scraper](https://apify.com/silva95gustavo/linkedin-ad-library-scraper) — $2.00–4.00 / 1,000 ads at the time of writing (check its Pricing tab)
-- Transcription: [steadyfetch/linkedin-ads-transcript-scraper](https://apify.com/steadyfetch/linkedin-ads-transcript-scraper) — from $15.00 / 1,000 video ad transcripts, **charged only when a transcript is delivered**
-- A 25-ad test run ≈ **$0.60 at most** (most LinkedIn ads are images, which are not charged). Apify's free $5 credit covers it many times over.
+- Transcription: [steadyfetch/linkedin-ads-transcript-scraper](https://apify.com/steadyfetch/linkedin-ads-transcript-scraper) — from $8.00 / 1,000 ad creative transcripts, **charged only when text is delivered**
+- A 25-ad test run ≈ **$0.60 at most** (video and image ads both deliver; text-free creatives are not charged). Apify's free $5 credit covers it many times over.
 
 ### Swap the scraper
 
@@ -250,7 +250,7 @@ The last node is a plain Set node (no credentials needed) — wire Google Sheets
 ### Cost
 
 - Transparency Center scraping: [silva95gustavo/google-ads-scraper](https://apify.com/silva95gustavo/google-ads-scraper) — $1.90 / 1,000 ads at the time of writing (check its Pricing tab)
-- Transcription: [steadyfetch/google-ads-video-transcript-scraper](https://apify.com/steadyfetch/google-ads-video-transcript-scraper) — from $15.00 / 1,000 video ad transcripts, **charged only when a transcript is delivered**
+- Transcription: [steadyfetch/google-ads-video-transcript-scraper](https://apify.com/steadyfetch/google-ads-video-transcript-scraper) — from $8.00 / 1,000 video ad transcripts, **charged only when a transcript is delivered**
 - A 25-ad test run ≈ **$0.55 at most** (text and image ads are not charged). Apify's free $5 credit covers it many times over.
 
 ### Swap the scraper
