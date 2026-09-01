@@ -2,6 +2,8 @@
 
 Free n8n workflows for ad-creative, Instagram and keyword data pipelines. No community nodes required — plain HTTP, importable into any n8n (cloud or self-hosted).
 
+**Library-ready (Sep 2026):** the five ad-transcript workflows use an n8n **Header Auth** credential for Apify (no token field), end in a **Google Sheets** node, and open with an overview sticky note plus section notes. They are being published to n8n's template library one at a time.
+
 ## Facebook Ad Transcripts — scrape competitor ads → hooks, CTAs & transcripts
 
 **What it does:** searches the Facebook Ad Library for video ads → transcribes every creative → gives you one row per ad with the **first-3-seconds hook**, CTA, advertiser, and full transcript. The manual version of this pipeline is sold as a paid template elsewhere; this one is free.
@@ -11,7 +13,7 @@ Free n8n workflows for ad-creative, Instagram and keyword data pipelines. No com
 ### 3-minute setup
 
 1. In n8n: **Workflows → Import from File** → pick `facebook-ad-transcripts.workflow.json`.
-2. Open the **Config** node and paste your [Apify API token](https://console.apify.com/settings/integrations) into `apifyToken`.
+2. Create an **HTTP Header Auth** credential in n8n (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`, token from [Apify → Settings → Integrations](https://console.apify.com/settings/integrations)) and select it on the HTTP Request nodes.
 3. (Optional) Edit `adLibrarySearchUrl` — any [Facebook Ad Library](https://www.facebook.com/ads/library/) search URL works (set `media_type=video`), and `maxAds`.
 4. Click **Test workflow**.
 
@@ -27,7 +29,7 @@ Free n8n workflows for ad-creative, Instagram and keyword data pipelines. No com
 | `seconds` | 32.8 |
 | `charged` | `true` / `false` — expired links & music-only ads are **$0** |
 
-From the last node, wire anything you like: Google Sheets, Airtable, Slack, a database.
+The last node appends one row per item to **Google Sheets** (connect your Google account and pick a sheet), or swap it for Airtable, Slack, or a database.
 
 ### Cost
 
@@ -50,7 +52,7 @@ The transcription step accepts **any** ad-library scraper's output (it deep-scan
 ### 3-minute setup
 
 1. In n8n: **Workflows → Import from File** → pick `competitor-ad-teardown.workflow.json`.
-2. Open the **Config** node and paste your [Apify API token](https://console.apify.com/settings/integrations) into `apifyToken`.
+2. Create an **HTTP Header Auth** credential in n8n (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`, token from [Apify → Settings → Integrations](https://console.apify.com/settings/integrations)) and select it on the HTTP Request nodes.
 3. Set `competitorUrl` — a competitor's Facebook Page URL (e.g. `https://www.facebook.com/nike`) or any [Ad Library](https://www.facebook.com/ads/library/) search URL (set `media_type=video`) — and `maxAds`.
 4. Click **Test workflow**. The flow polls the scraper run until it finishes, then transcribes.
 
@@ -69,7 +71,7 @@ The transcription step accepts **any** ad-library scraper's output (it deep-scan
 | `charged` | `true` / `false` — expired links & music-only ads are **$0** |
 | `transcript` | full speech-to-text, any video length |
 
-The last node is a plain Set node (no credentials needed) — wire Google Sheets, Airtable, Slack, or a database after it.
+The last node appends one row per item to **Google Sheets** (connect your Google account and pick a sheet), or swap it for Airtable, Slack, or a database.
 
 ### Swap the scraper
 
@@ -133,7 +135,7 @@ Instagram's CDN links expire ~1–3 days after scraping — run the transcript s
 ### 3-minute setup
 
 1. In n8n: **Workflows → Import from File** → pick `tiktok-ad-transcripts.workflow.json`.
-2. Open the **Config** node and paste your [Apify API token](https://console.apify.com/settings/integrations) into `apifyToken`.
+2. Create an **HTTP Header Auth** credential in n8n (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`, token from [Apify → Settings → Integrations](https://console.apify.com/settings/integrations)) and select it on the HTTP Request nodes.
 3. Set `countryCode` (e.g. `US`, `GB`, `DE`, `SA`), `period` (`7`, `30` or `180` days), `industry` (`All industries` or one Creative Center industry name) and `maxAds`.
 4. Click **Test workflow**. The flow polls the scraper run until it finishes, then transcribes by dataset ID.
 
@@ -154,7 +156,7 @@ Instagram's CDN links expire ~1–3 days after scraping — run the transcript s
 | `charged` | `true` / `false` — expired links and music-only ads carry no result fee |
 | `transcript` | full speech-to-text, any video length |
 
-The last node is a plain Set node (no credentials needed) — wire Google Sheets, Airtable, Slack, or a database after it. Expect a fair share of uncharged `no_audio` rows — many Top Ads are music plus on-screen text.
+The last node appends one row per item to **Google Sheets** (connect your Google account and pick a sheet), or swap it for Airtable, Slack, or a database. Expect a fair share of uncharged `no_audio` rows — many Top Ads are music plus on-screen text.
 
 ### Cost
 
@@ -181,7 +183,7 @@ Creative Center video links expire about **6 hours** after the scraper minted th
 ### 3-minute setup
 
 1. In n8n: **Workflows → Import from File** → pick `linkedin-ad-transcripts.workflow.json`.
-2. Open the **Config** node and paste your [Apify API token](https://console.apify.com/settings/integrations) into `apifyToken`.
+2. Create an **HTTP Header Auth** credential in n8n (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`, token from [Apify → Settings → Integrations](https://console.apify.com/settings/integrations)) and select it on the HTTP Request nodes.
 3. Set `adLibraryUrl` — an Ad Library search URL (`https://www.linkedin.com/ad-library/search?accountOwner=hubspot&countries=US&dateOption=last-30-days`) or a company URL (`https://www.linkedin.com/company/hubspot/`) — and `maxAds`.
 4. Click **Test workflow**. The flow polls the scraper run until it finishes, then transcribes by dataset ID.
 
@@ -202,7 +204,7 @@ Creative Center video links expire about **6 hours** after the scraper minted th
 | `transcript` | full speech-to-text, any video length |
 | `detail_url` | https://www.linkedin.com/ad-library/detail/1508450294 |
 
-The last node is a plain Set node (no credentials needed) — wire Google Sheets, Airtable, Slack, or a database after it.
+The last node appends one row per item to **Google Sheets** (connect your Google account and pick a sheet), or swap it for Airtable, Slack, or a database.
 
 ### Cost
 
@@ -225,7 +227,7 @@ The scrape step is a plain HTTP call to `silva95gustavo/linkedin-ad-library-scra
 ### 3-minute setup
 
 1. In n8n: **Workflows → Import from File** → pick `google-ads-video-transcripts.workflow.json`.
-2. Open the **Config** node and paste your [Apify API token](https://console.apify.com/settings/integrations) into `apifyToken`.
+2. Create an **HTTP Header Auth** credential in n8n (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`, token from [Apify → Settings → Integrations](https://console.apify.com/settings/integrations)) and select it on the HTTP Request nodes.
 3. Set `transparencyCenterUrl` — open the [Transparency Center](https://adstransparency.google.com/), pick an advertiser or type a domain, set region and date, and copy the address bar (e.g. `https://adstransparency.google.com/?region=US&domain=hellofresh.com&preset-date=Last+30+days`, or an `https://adstransparency.google.com/advertiser/AR…?region=US` URL) — and `maxAds`.
 4. Click **Test workflow**. The flow polls the scraper run until it finishes, then transcribes by dataset ID.
 
@@ -245,7 +247,7 @@ The scrape step is a plain HTTP call to `silva95gustavo/linkedin-ad-library-scra
 | `transcript` | full speech-to-text, any video length |
 | `video_url` | https://www.youtube.com/watch?v=ONzIwHyQGJs |
 
-The last node is a plain Set node (no credentials needed) — wire Google Sheets, Airtable, Slack, or a database after it.
+The last node appends one row per item to **Google Sheets** (connect your Google account and pick a sheet), or swap it for Airtable, Slack, or a database.
 
 ### Cost
 
