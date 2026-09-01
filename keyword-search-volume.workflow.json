@@ -1,0 +1,261 @@
+{
+  "id": "KeywordVolumeCpc01",
+  "name": "Get Google search volume and CPC for a keyword list from Keyword Planner data using Apify",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Get Google search volume and CPC for a keyword list\n\n**Setup (3 minutes)**\n1. Open **Config** and paste your Apify API token.\n2. Paste your keywords into `keywordsText`, one per line (or comma-separated). Set `country` and `language`.\n3. Click **Test workflow**.\n\n**What you get:** one row per keyword with Google Ads Keyword Planner figures through a licensed provider: average monthly searches, competition, top-of-page bid range, 12-month trend direction, and CPC wherever Google publishes one. No modelled numbers. Keywords Google has no data for come back uncharged.\n\n**Mode:** `metrics-only` prices the keywords you give it. `ideas` expands each into new keyword ideas with the same metrics. `both` does both.\n\n**Cost:** steadyfetch/keyword-search-volume-scraper, from $2 per 1,000 keywords on Apify's Business plan ($8 on the free plan). No minimum batch. 50 keywords cost about $0.40 on the free plan.",
+        "height": 380,
+        "width": 640,
+        "color": 5
+      },
+      "id": "9b2e0002-0000-4000-8000-000000000009",
+      "name": "Read me first",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        -360
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "9b2e0002-0000-4000-8000-000000000001",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-token",
+              "name": "apifyToken",
+              "value": "PASTE_YOUR_APIFY_TOKEN_HERE",
+              "type": "string"
+            },
+            {
+              "id": "cfg-kw",
+              "name": "keywordsText",
+              "value": "crm software\nemail marketing tool\nproject management app\nbest accounting software",
+              "type": "string"
+            },
+            {
+              "id": "cfg-country",
+              "name": "country",
+              "value": "US",
+              "type": "string"
+            },
+            {
+              "id": "cfg-lang",
+              "name": "language",
+              "value": "en",
+              "type": "string"
+            },
+            {
+              "id": "cfg-mode",
+              "name": "mode",
+              "value": "metrics-only",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9b2e0002-0000-4000-8000-000000000002",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/steadyfetch~keyword-search-volume-scraper/run-sync-get-dataset-items?token={{ $('Config').first().json.apifyToken }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ keywords: String($('Config').first().json.keywordsText).split(/\\r?\\n|,/).map(k => k.trim()).filter(Boolean), country: $('Config').first().json.country, language: $('Config').first().json.language, mode: $('Config').first().json.mode }) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "9b2e0002-0000-4000-8000-000000000003",
+      "name": "Look up volume and CPC",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "9b2e0002-0000-4000-8000-000000000094",
+              "leftValue": "={{ typeof $json.keyword === 'string' && $json.keyword.length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9b2e0002-0000-4000-8000-000000000004",
+      "name": "Keyword rows only (skip the run summary)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f-kw",
+              "name": "keyword",
+              "value": "={{ $json.keyword }}",
+              "type": "string"
+            },
+            {
+              "id": "f-seed",
+              "name": "seed",
+              "value": "={{ $json.seed }}",
+              "type": "string"
+            },
+            {
+              "id": "f-vol",
+              "name": "avg_monthly_searches",
+              "value": "={{ $json.avgMonthlySearches }}",
+              "type": "number"
+            },
+            {
+              "id": "f-cpc",
+              "name": "cpc_usd",
+              "value": "={{ $json.cpcUsd }}",
+              "type": "number"
+            },
+            {
+              "id": "f-comp",
+              "name": "competition",
+              "value": "={{ $json.competition }}",
+              "type": "string"
+            },
+            {
+              "id": "f-low",
+              "name": "low_top_of_page_bid_usd",
+              "value": "={{ $json.lowTopOfPageBidUsd }}",
+              "type": "number"
+            },
+            {
+              "id": "f-high",
+              "name": "high_top_of_page_bid_usd",
+              "value": "={{ $json.highTopOfPageBidUsd }}",
+              "type": "number"
+            },
+            {
+              "id": "f-trend",
+              "name": "trend",
+              "value": "={{ $json.trendDirection }}",
+              "type": "string"
+            },
+            {
+              "id": "f-asof",
+              "name": "data_as_of",
+              "value": "={{ $json.dataAsOf }}",
+              "type": "string"
+            },
+            {
+              "id": "f-charged",
+              "name": "charged",
+              "value": "={{ $json.charged }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9b2e0002-0000-4000-8000-000000000005",
+      "name": "Tidy fields (pipe to Sheets from here)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        -80
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Look up volume and CPC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Look up volume and CPC": {
+      "main": [
+        [
+          {
+            "node": "Keyword rows only (skip the run summary)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keyword rows only (skip the run summary)": {
+      "main": [
+        [
+          {
+            "node": "Tidy fields (pipe to Sheets from here)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

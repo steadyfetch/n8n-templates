@@ -1,6 +1,6 @@
 # steadyfetch n8n templates
 
-Free n8n workflows for ad-creative data pipelines. No community nodes required — plain HTTP, importable into any n8n (cloud or self-hosted).
+Free n8n workflows for ad-creative, Instagram and keyword data pipelines. No community nodes required — plain HTTP, importable into any n8n (cloud or self-hosted).
 
 ## Facebook Ad Transcripts — scrape competitor ads → hooks, CTAs & transcripts
 
@@ -261,6 +261,98 @@ Want the **image and text ads'** copy too? Pair it with [steadyfetch/google-ads-
 
 ---
 
+
+---
+
+## Instagram Reels transcripts — a creator's handle in, reels back as text with 3-second hooks
+
+**What it does:** give it an Instagram handle → the actor lists that creator's most recent reels itself and transcribes them → one row per reel with the **first-3-seconds hook**, the full spoken transcript, language, duration, caption, plays and likes. No scraper to chain, no login. Reels with no speech are not charged unless you switch on on-screen text reading.
+
+**[Download the workflow JSON →](./instagram-reel-transcripts.workflow.json)**
+
+### 3-minute setup
+
+1. In n8n: **Workflows → Import from File** → pick `instagram-reel-transcripts.workflow.json`.
+2. Open the **Config** node and paste your [Apify API token](https://console.apify.com/settings/integrations) into `apifyToken`.
+3. Set `instagramHandle` (`nasa`, `@nasa` or a profile URL) and `maxReels`. Optional: `includeOnScreenText` → `true` to read text off silent reels (those become charged rows).
+4. Click **Test workflow**.
+
+### What you get per reel
+
+| field | example |
+|---|---|
+| `status` | `transcribed` (only these are charged) |
+| `creator` | nasa |
+| `hook_first_3s` | "I think we got my mom the perfect Mother's Day gift this year" |
+| `transcript` | full speech-to-text, any length |
+| `language` · `seconds` · `caption` | English · 61.1 · the post caption |
+| `charged` | `true` / `false` — silent reels and dead links are **$0** |
+
+### Cost
+
+[steadyfetch/instagram-reel-transcript-scraper](https://apify.com/steadyfetch/instagram-reel-transcript-scraper) — from $5.00 / 1,000 reels on Apify's Business plan ($15.00 on the free plan), plus $0.005 per minute beyond the first 3 minutes of a long video. A 10-reel test ≈ **$0.15**.
+
+---
+
+## Keyword search volume & CPC — paste a keyword list, get Keyword Planner numbers
+
+**What it does:** paste keywords one per line → one row per keyword with Google Ads Keyword Planner figures through a licensed provider: **average monthly searches**, competition, top-of-page bid range, 12-month trend direction, and **CPC wherever Google publishes one**. No modelled numbers, no invented difficulty score; keywords Google has no data for come back uncharged. Switch `mode` to `ideas` to expand each keyword into new keyword ideas with the same metrics.
+
+**[Download the workflow JSON →](./keyword-search-volume.workflow.json)**
+
+### 3-minute setup
+
+1. In n8n: **Workflows → Import from File** → pick `keyword-search-volume.workflow.json`.
+2. Open the **Config** node and paste your [Apify API token](https://console.apify.com/settings/integrations) into `apifyToken`.
+3. Paste your list into `keywordsText` (one per line or comma-separated); set `country` (`US`, `GB`, `DE`…) and `language` (`en`, `de`…).
+4. Click **Test workflow**. The IF node drops the run's summary row so only keyword rows reach your sheet.
+
+### What you get per keyword
+
+| field | notes |
+|---|---|
+| `avg_monthly_searches` | Google's average; `0` means fewer than Google reports |
+| `cpc_usd` | average CPC, `null` where Google publishes none |
+| `competition` · `low_top_of_page_bid_usd` · `high_top_of_page_bid_usd` | LOW / MEDIUM / HIGH and the bid range |
+| `trend` · `data_as_of` | `rising` / `flat` / `falling` and the last month Google reported |
+| `charged` | `true` / `false` — no-data keywords are **$0** |
+
+### Cost
+
+[steadyfetch/keyword-search-volume-scraper](https://apify.com/steadyfetch/keyword-search-volume-scraper) — from $2.00 / 1,000 keywords on Apify's Business plan ($8.00 on the free plan), no minimum batch. 50 keywords ≈ **$0.40** on the free plan.
+
+---
+
+## Instagram profile posts — the latest posts and reels from any public profile, as a table
+
+**What it does:** handles or profile URLs in → one row per post or reel, **newest by date** (pinned posts are flagged, not promoted to the top), with caption, hashtags, like and comment counts, plays and duration for videos, and the media URL. No login, no cookies. Your limit is exact: 30 means 30.
+
+**[Download the workflow JSON →](./instagram-profile-posts.workflow.json)**
+
+### 3-minute setup
+
+1. In n8n: **Workflows → Import from File** → pick `instagram-profile-posts.workflow.json`.
+2. Open the **Config** node and paste your [Apify API token](https://console.apify.com/settings/integrations) into `apifyToken`.
+3. Set `profiles` (comma-separated handles or URLs), `postsPerProfile`, and optionally `mediaType` (`any`, `image`, `video`, `carousel`).
+4. Click **Test workflow**. The IF node keeps post rows only (profile and summary rows are dropped).
+
+### What you get per post
+
+| field | example |
+|---|---|
+| `profile` · `post_url` · `type` | nasa · https://www.instagram.com/p/DchLnq8E21N/ · carousel |
+| `posted_at` · `caption` | 2026-08-26T21:30:18Z · "How it started 👉 how it's going…" |
+| `likes` · `comments` · `plays` · `video_seconds` | 19,990 · 140 · — · — |
+| `is_pinned` · `media_url` | false · the image or video URL |
+| `charged` | `true` / `false` — posts we could not deliver are **$0** |
+
+### Cost
+
+[steadyfetch/instagram-profile-posts](https://apify.com/steadyfetch/instagram-profile-posts) — from $0.60 / 1,000 posts on Apify's Business plan ($2.40 on the free plan). Two profiles × 30 posts ≈ **$0.15** on the free plan.
+
+
+---
+
 ### Validated
 
-All six workflows import cleanly into n8n (last checked against n8n 2.35.6 via `n8n import:workflow`).
+All five workflows import cleanly into n8n (last checked against n8n 2.35.6 via `n8n import:workflow` on 2026-09-01).
