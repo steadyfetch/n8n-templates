@@ -276,7 +276,7 @@ Want the **image and text ads'** copy too? Pair it with [steadyfetch/google-ads-
 
 ### Cost
 
-[steadyfetch/keyword-search-volume-scraper](https://apify.com/steadyfetch/keyword-search-volume-scraper) — from $2.00 / 1,000 keywords on Apify's Business plan ($8.00 on the free plan), no minimum batch. 50 keywords ≈ **$0.40** on the free plan.
+[steadyfetch/keyword-search-volume-scraper](https://apify.com/steadyfetch/keyword-search-volume-scraper) — from $2.00 / 1,000 keywords on Apify's Business plan ($8.00 on the free plan), no minimum batch. From 16 September 2026 a run that buys fresh data also pays one $0.19 fresh-lookup fee (runs answered from the actor's 30-day cache pay none). 50 fresh keywords ≈ **$0.59** on the free plan ($0.40 before that date); set the run's Maximum cost per run to at least $0.25.
 
 ---
 
