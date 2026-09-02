@@ -306,7 +306,7 @@ Want the **image and text ads'** copy too? Pair it with [steadyfetch/google-ads-
 
 ### Cost
 
-[steadyfetch/instagram-profile-posts](https://apify.com/steadyfetch/instagram-profile-posts) — from $0.60 / 1,000 posts on Apify's Business plan ($2.40 on the free plan). Two profiles × 30 posts ≈ **$0.15** on the free plan.
+[steadyfetch/instagram-profile-posts](https://apify.com/steadyfetch/instagram-profile-posts) — from $0.60 / 1,000 posts on Apify's Business plan ($2.40 on the free plan). Two profiles × 30 posts ≈ **$0.15** on the free plan. From 16 September 2026 each profile that delivers posts adds one $0.003 profile lookup (two profiles ≈ $0.006 more); a profile that delivers nothing pays none.
 
 
 ---
