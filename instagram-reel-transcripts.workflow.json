@@ -1,211 +1,297 @@
 {
-  "id": "IgReelTranscripts01",
-  "name": "Transcribe a creator's Instagram Reels into text with 3-second hooks using Apify",
-  "active": false,
-  "nodes": [
-    {
-      "parameters": {
-        "content": "## Transcribe a creator's Instagram Reels into text with hooks\n\n**Setup (3 minutes)**\n1. Open **Config** and paste your Apify API token (console.apify.com → Settings → Integrations).\n2. Set `instagramHandle` (`nasa`, `@nasa` or a profile URL) and `maxReels`.\n3. Click **Test workflow**.\n\n**What you get:** one row per reel with the spoken transcript, the first-3-seconds hook, language, duration, plays and likes. Reels with no speech are not charged unless you set `includeOnScreenText` to true.\n\n**Cost:** steadyfetch/instagram-reel-transcript-scraper, from $5 per 1,000 reels on Apify's Business plan ($15 on the free plan). A 10-reel test run is about $0.15. Apify's free credit covers it.\n\nWire Google Sheets, Airtable or Slack after the last node.",
-        "height": 340,
-        "width": 640,
-        "color": 5
-      },
-      "id": "9b2e0001-0000-4000-8000-000000000009",
-      "name": "Read me first",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -260,
-        -360
-      ]
-    },
-    {
-      "parameters": {},
-      "id": "9b2e0001-0000-4000-8000-000000000001",
-      "name": "When clicking 'Test workflow'",
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [
-        -220,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "cfg-token",
-              "name": "apifyToken",
-              "value": "PASTE_YOUR_APIFY_TOKEN_HERE",
-              "type": "string"
-            },
-            {
-              "id": "cfg-handle",
-              "name": "instagramHandle",
-              "value": "nasa",
-              "type": "string"
-            },
-            {
-              "id": "cfg-max",
-              "name": "maxReels",
-              "value": 10,
-              "type": "number"
-            },
-            {
-              "id": "cfg-ocr",
-              "name": "includeOnScreenText",
-              "value": false,
-              "type": "boolean"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "9b2e0001-0000-4000-8000-000000000002",
-      "name": "Config",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        0,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "=https://api.apify.com/v2/acts/steadyfetch~instagram-reel-transcript-scraper/run-sync-get-dataset-items?token={{ $('Config').first().json.apifyToken }}",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ handles: [ String($('Config').first().json.instagramHandle) ], maxReelsPerHandle: $('Config').first().json.maxReels, includeOnScreenText: $('Config').first().json.includeOnScreenText === true }) }}",
-        "options": {
-          "timeout": 300000
-        }
-      },
-      "id": "9b2e0001-0000-4000-8000-000000000003",
-      "name": "Transcribe the creator's reels",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        220,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "f-status",
-              "name": "status",
-              "value": "={{ $json.status }}",
-              "type": "string"
-            },
-            {
-              "id": "f-creator",
-              "name": "creator",
-              "value": "={{ $json.ownerUsername }}",
-              "type": "string"
-            },
-            {
-              "id": "f-url",
-              "name": "reel_url",
-              "value": "={{ $json.postUrl }}",
-              "type": "string"
-            },
-            {
-              "id": "f-hook",
-              "name": "hook_first_3s",
-              "value": "={{ $json.hook3s }}",
-              "type": "string"
-            },
-            {
-              "id": "f-text",
-              "name": "transcript",
-              "value": "={{ $json.transcript }}",
-              "type": "string"
-            },
-            {
-              "id": "f-ocr",
-              "name": "on_screen_text",
-              "value": "={{ $json.onScreenText }}",
-              "type": "string"
-            },
-            {
-              "id": "f-lang",
-              "name": "language",
-              "value": "={{ $json.language }}",
-              "type": "string"
-            },
-            {
-              "id": "f-sec",
-              "name": "seconds",
-              "value": "={{ $json.durationSeconds }}",
-              "type": "number"
-            },
-            {
-              "id": "f-caption",
-              "name": "caption",
-              "value": "={{ $json.caption }}",
-              "type": "string"
-            },
-            {
-              "id": "f-charged",
-              "name": "charged",
-              "value": "={{ $json.charged }}",
-              "type": "boolean"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "9b2e0001-0000-4000-8000-000000000004",
-      "name": "Tidy fields (pipe to Sheets from here)",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        440,
-        0
-      ]
-    }
-  ],
-  "connections": {
-    "When clicking 'Test workflow'": {
-      "main": [
-        [
-          {
-            "node": "Config",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Config": {
-      "main": [
-        [
-          {
-            "node": "Transcribe the creator's reels",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Transcribe the creator's reels": {
-      "main": [
-        [
-          {
-            "node": "Tidy fields (pipe to Sheets from here)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
+ "id": "IgReelTranscripts01",
+ "name": "Transcribe Instagram Reels from a creator's profile to Google Sheets with Apify",
+ "active": false,
+ "nodes": [
+  {
+   "id": "sticky-main",
+   "name": "Overview",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -980,
+    -300
+   ],
+   "parameters": {
+    "width": 700,
+    "height": 800,
+    "content": "# Transcribe Instagram Reels from a creator's profile to Google Sheets with Apify\n\nGive it one Instagram handle and get that creator's most recent reels as text: the first-3-seconds hook, the full spoken transcript, language, duration, caption, plays and likes, one row per reel, appended to a Google Sheet.\n\n### Who it's for\nCreative strategists, UGC teams and social managers who study what a creator actually says in their reels, at volume, without watching each one.\n\n### How it works\n1. A Set node holds the creator's handle, how many recent reels to read, and whether to read on-screen text off silent reels.\n2. An HTTP Request runs the Instagram Reel Transcript Scraper on Apify: it lists the creator's latest reels itself, transcribes the speech and extracts the opening hook. Reels with no speech come back as uncharged rows.\n3. A Set node tidies the fields and a Google Sheets node appends one row per reel.\n\n### Setup\n1. Create an HTTP Header Auth credential (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`) and select it on the HTTP Request node.\n2. Connect Google Sheets and pick the spreadsheet and sheet.\n3. Open the Config node, set the handle (`nasa`, `@nasa` or a profile URL) and how many reels to read.\n4. Run the workflow.\n\n### Requirements\nAn Apify account (the free plan's credit covers a 10-reel test) and a Google account.\n\n### Customization tips\nLoop over a list of handles to cover several creators. Switch `includeOnScreenText` on to read text off silent reels. Add a Schedule Trigger and the actor's watchlist fields (`watchlistId`, `newReelsOnly`) to pay only for new reels each week.\n"
+   }
   },
-  "settings": {
-    "executionOrder": "v1"
+  {
+   "id": "sticky-sec-1",
+   "name": "Section 1",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -260,
+    -160
+   ],
+   "parameters": {
+    "color": 7,
+    "width": 420,
+    "height": 300,
+    "content": "## 1. Configure\nThe creator's handle, the reel count and the on-screen-text switch live in one Set node."
+   }
   },
-  "pinData": {}
+  {
+   "id": "sticky-sec-2",
+   "name": "Section 2",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    180,
+    -160
+   ],
+   "parameters": {
+    "color": 7,
+    "width": 420,
+    "height": 300,
+    "content": "## 2. Transcribe\nOne Apify call lists the creator's latest reels and transcribes them (hook, full speech, language)."
+   }
+  },
+  {
+   "id": "sticky-sec-3",
+   "name": "Section 3",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    620,
+    -160
+   ],
+   "parameters": {
+    "color": 7,
+    "width": 460,
+    "height": 300,
+    "content": "## 3. Save\nTidy the columns and append one row per reel to Google Sheets."
+   }
+  },
+  {
+   "parameters": {},
+   "id": "9b2e0001-0000-4000-8000-000000000001",
+   "name": "When clicking 'Test workflow'",
+   "type": "n8n-nodes-base.manualTrigger",
+   "typeVersion": 1,
+   "position": [
+    -220,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "assignments": {
+     "assignments": [
+      {
+       "id": "cfg-handle",
+       "name": "instagramHandle",
+       "value": "nasa",
+       "type": "string"
+      },
+      {
+       "id": "cfg-max",
+       "name": "maxReels",
+       "value": 10,
+       "type": "number"
+      },
+      {
+       "id": "cfg-ocr",
+       "name": "includeOnScreenText",
+       "value": false,
+       "type": "boolean"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "id": "9b2e0001-0000-4000-8000-000000000002",
+   "name": "Config",
+   "type": "n8n-nodes-base.set",
+   "typeVersion": 3.4,
+   "position": [
+    0,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "=https://api.apify.com/v2/acts/steadyfetch~instagram-reel-transcript-scraper/run-sync-get-dataset-items",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ handles: [ String($('Config').first().json.instagramHandle) ], maxReelsPerHandle: $('Config').first().json.maxReels, includeOnScreenText: $('Config').first().json.includeOnScreenText === true }) }}",
+    "options": {
+     "timeout": 300000
+    },
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth"
+   },
+   "id": "9b2e0001-0000-4000-8000-000000000003",
+   "name": "Transcribe the creator's reels",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    220,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "assignments": {
+     "assignments": [
+      {
+       "id": "f-status",
+       "name": "status",
+       "value": "={{ $json.status }}",
+       "type": "string"
+      },
+      {
+       "id": "f-creator",
+       "name": "creator",
+       "value": "={{ $json.ownerUsername }}",
+       "type": "string"
+      },
+      {
+       "id": "f-url",
+       "name": "reel_url",
+       "value": "={{ $json.postUrl }}",
+       "type": "string"
+      },
+      {
+       "id": "f-hook",
+       "name": "hook_first_3s",
+       "value": "={{ $json.hook3s }}",
+       "type": "string"
+      },
+      {
+       "id": "f-text",
+       "name": "transcript",
+       "value": "={{ $json.transcript }}",
+       "type": "string"
+      },
+      {
+       "id": "f-ocr",
+       "name": "on_screen_text",
+       "value": "={{ $json.onScreenText }}",
+       "type": "string"
+      },
+      {
+       "id": "f-lang",
+       "name": "language",
+       "value": "={{ $json.language }}",
+       "type": "string"
+      },
+      {
+       "id": "f-sec",
+       "name": "seconds",
+       "value": "={{ $json.durationSeconds }}",
+       "type": "number"
+      },
+      {
+       "id": "f-caption",
+       "name": "caption",
+       "value": "={{ $json.caption }}",
+       "type": "string"
+      },
+      {
+       "id": "f-charged",
+       "name": "charged",
+       "value": "={{ $json.charged }}",
+       "type": "boolean"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "id": "9b2e0001-0000-4000-8000-000000000004",
+   "name": "Tidy fields",
+   "type": "n8n-nodes-base.set",
+   "typeVersion": 3.4,
+   "position": [
+    440,
+    0
+   ]
+  },
+  {
+   "id": "append-google-sheets",
+   "name": "Append rows to Google Sheets",
+   "type": "n8n-nodes-base.googleSheets",
+   "typeVersion": 4.7,
+   "position": [
+    660,
+    0
+   ],
+   "parameters": {
+    "operation": "append",
+    "documentId": {
+     "__rl": true,
+     "mode": "list",
+     "value": "",
+     "cachedResultName": "Reel transcripts"
+    },
+    "sheetName": {
+     "__rl": true,
+     "mode": "list",
+     "value": "",
+     "cachedResultName": "Sheet1"
+    },
+    "columns": {
+     "mappingMode": "autoMapInputData",
+     "value": {},
+     "matchingColumns": [],
+     "schema": []
+    },
+    "options": {}
+   }
+  }
+ ],
+ "connections": {
+  "When clicking 'Test workflow'": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Config": {
+   "main": [
+    [
+     {
+      "node": "Transcribe the creator's reels",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Transcribe the creator's reels": {
+   "main": [
+    [
+     {
+      "node": "Tidy fields",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Tidy fields": {
+   "main": [
+    [
+     {
+      "node": "Append rows to Google Sheets",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1"
+ },
+ "pinData": {}
 }

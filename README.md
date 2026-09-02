@@ -79,53 +79,6 @@ The scrape step is a plain HTTP call to `curious_coder/facebook-ads-library-scra
 
 ---
 
-## Instagram Reel Transcripts — scrape a profile's reels → hooks & transcripts
-
-**What it does:** point it at an Instagram profile (or a list of reel URLs) → scrapes the profile's latest reels with [apify/instagram-reel-scraper](https://apify.com/apify/instagram-reel-scraper) → chains [steadyfetch/instagram-reel-transcript-scraper](https://apify.com/steadyfetch/instagram-reel-transcript-scraper) **by dataset ID** (no reel rows pass through n8n, so big batches stay light) → gives you a spreadsheet-shaped table: one row per reel with the **first-3-seconds hook**, the full audio transcript (what is *said*, not the caption), transcript length in words, language, seconds, creator, caption and post URL. Transcribed reels first, longest first.
-
-**[Download the workflow JSON →](./instagram-reel-transcripts.workflow.json)**
-
-### 3-minute setup
-
-1. In n8n: **Workflows → Import from File** → pick `instagram-reel-transcripts.workflow.json`.
-2. Open the **Config** node and paste your [Apify API token](https://console.apify.com/settings/integrations) into `apifyToken`.
-3. Set `instagramProfile` — a username (e.g. `nike`), a profile URL, or a direct reel URL — and `maxReels`.
-4. Click **Test workflow**. The flow polls the scraper run until it finishes, then transcribes by dataset ID.
-
-### What you get per reel
-
-| field | example |
-|---|---|
-| `creator` | nike |
-| `short_code` | DNr3dKxRq_s |
-| `status` | `transcribed` (only these are charged) |
-| `hook_first_3s` | "20 years in this jersey." |
-| `seconds` | 34.9 |
-| `transcript_words` | 58 |
-| `language` | English |
-| `charged` | `true` / `false` — expired links, music-only reels and image posts carry no result fee |
-| `transcript` | full speech-to-text, any video length |
-| `caption` | the post caption (kept separate — it is **not** the transcript) |
-| `post_url` | https://www.instagram.com/reel/DNr3dKxRq_s/ |
-
-The last node is a plain Set node (no credentials needed) — wire Google Sheets, Airtable, Slack, or a database after it.
-
-### Cost
-
-- Reel scraping: [apify/instagram-reel-scraper](https://apify.com/apify/instagram-reel-scraper) — pay-per-event (≈ $2.60 / 1,000 reels at the time of writing; check its Pricing tab)
-- Transcription: [steadyfetch/instagram-reel-transcript-scraper](https://apify.com/steadyfetch/instagram-reel-transcript-scraper) — from $5.00 / 1,000 reel transcripts, **charged only when a transcript is delivered**
-- A 10-reel test run ≈ **$0.18**. Apify's free $5 credit covers it many times over.
-
-### Swap the scraper
-
-The scrape step is a plain HTTP call to `apify/instagram-reel-scraper` (`{ "username": [...], "resultsLimit": N }`). Any Instagram scraper whose rows carry `videoUrl` / `audioUrl` works — `apify/instagram-scraper`, `apify/instagram-post-scraper`, `apify/instagram-api-scraper` and others: change the actor slug and JSON body in the *Scrape the profile's reels* node. The transcript step reads the run's dataset ID and deep-scans rows for the reel media URL, whatever the field names (reels nested inside profile results included).
-
-### Freshness
-
-Instagram's CDN links expire ~1–3 days after scraping — run the transcript step right after the scrape (this flow does). Expired rows come back as uncharged `unavailable_expired` with the exact expiry time.
-
----
-
 ## TikTok Top Ads transcripts — Creative Center industry/region → hooks & transcripts
 
 **What it does:** pick a Creative Center market, lookback window and industry → scrapes the **Top Ads** with [azzouzana/tiktok-creative-center-top-ads-scraper](https://apify.com/azzouzana/tiktok-creative-center-top-ads-scraper) → chains [steadyfetch/tiktok-ads-transcript-scraper](https://apify.com/steadyfetch/tiktok-ads-transcript-scraper) **by dataset ID** right away (no ad rows pass through n8n, and TikTok's ~6-hour video links are still fresh) → gives you a spreadsheet-shaped table: one row per ad with the **first-3-seconds hook**, CTR, likes, brand, ad title, transcript length in words, language, seconds and the full transcript. Transcribed ads first, highest CTR first.
@@ -266,7 +219,7 @@ Want the **image and text ads'** copy too? Pair it with [steadyfetch/google-ads-
 
 ---
 
-## Instagram Reels transcripts — a creator's handle in, reels back as text with 3-second hooks
+## Transcribe Instagram Reels from a creator's profile to Google Sheets with Apify
 
 **What it does:** give it an Instagram handle → the actor lists that creator's most recent reels itself and transcribes them → one row per reel with the **first-3-seconds hook**, the full spoken transcript, language, duration, caption, plays and likes. No scraper to chain, no login. Reels with no speech are not charged unless you switch on on-screen text reading.
 
@@ -275,9 +228,10 @@ Want the **image and text ads'** copy too? Pair it with [steadyfetch/google-ads-
 ### 3-minute setup
 
 1. In n8n: **Workflows → Import from File** → pick `instagram-reel-transcripts.workflow.json`.
-2. Open the **Config** node and paste your [Apify API token](https://console.apify.com/settings/integrations) into `apifyToken`.
-3. Set `instagramHandle` (`nasa`, `@nasa` or a profile URL) and `maxReels`. Optional: `includeOnScreenText` → `true` to read text off silent reels (those become charged rows).
-4. Click **Test workflow**.
+2. Create an **HTTP Header Auth** credential (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN` — token from [Apify → Settings → Integrations](https://console.apify.com/settings/integrations)) and select it on the HTTP Request node.
+3. Connect **Google Sheets** on the last node and pick the spreadsheet and sheet.
+4. Open the **Config** node: set `instagramHandle` (`nasa`, `@nasa` or a profile URL) and `maxReels`. Optional: `includeOnScreenText` → `true` to read text off silent reels (those become charged rows).
+5. Click **Test workflow**.
 
 ### What you get per reel
 
@@ -296,7 +250,7 @@ Want the **image and text ads'** copy too? Pair it with [steadyfetch/google-ads-
 
 ---
 
-## Keyword search volume & CPC — paste a keyword list, get Keyword Planner numbers
+## Get Google search volume and CPC for a keyword list to Google Sheets with Apify
 
 **What it does:** paste keywords one per line → one row per keyword with Google Ads Keyword Planner figures through a licensed provider: **average monthly searches**, competition, top-of-page bid range, 12-month trend direction, and **CPC wherever Google publishes one**. No modelled numbers, no invented difficulty score; keywords Google has no data for come back uncharged. Switch `mode` to `ideas` to expand each keyword into new keyword ideas with the same metrics.
 
@@ -305,9 +259,10 @@ Want the **image and text ads'** copy too? Pair it with [steadyfetch/google-ads-
 ### 3-minute setup
 
 1. In n8n: **Workflows → Import from File** → pick `keyword-search-volume.workflow.json`.
-2. Open the **Config** node and paste your [Apify API token](https://console.apify.com/settings/integrations) into `apifyToken`.
-3. Paste your list into `keywordsText` (one per line or comma-separated); set `country` (`US`, `GB`, `DE`…) and `language` (`en`, `de`…).
-4. Click **Test workflow**. The IF node drops the run's summary row so only keyword rows reach your sheet.
+2. Create an **HTTP Header Auth** credential (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN` — token from [Apify → Settings → Integrations](https://console.apify.com/settings/integrations)) and select it on the HTTP Request node.
+3. Connect **Google Sheets** on the last node and pick the spreadsheet and sheet.
+4. Open the **Config** node: paste your list into `keywordsText` (one per line or comma-separated); set `country` (`US`, `GB`, `DE`…) and `language` (`en`, `de`…).
+5. Click **Test workflow**. The IF node drops the run's summary row so only keyword rows reach your sheet.
 
 ### What you get per keyword
 
@@ -325,7 +280,7 @@ Want the **image and text ads'** copy too? Pair it with [steadyfetch/google-ads-
 
 ---
 
-## Instagram profile posts — the latest posts and reels from any public profile, as a table
+## Pull the latest posts and reels from Instagram profiles to Google Sheets with Apify
 
 **What it does:** handles or profile URLs in → one row per post or reel, **newest by date** (pinned posts are flagged, not promoted to the top), with caption, hashtags, like and comment counts, plays and duration for videos, and the media URL. No login, no cookies. Your limit is exact: 30 means 30.
 
@@ -334,9 +289,10 @@ Want the **image and text ads'** copy too? Pair it with [steadyfetch/google-ads-
 ### 3-minute setup
 
 1. In n8n: **Workflows → Import from File** → pick `instagram-profile-posts.workflow.json`.
-2. Open the **Config** node and paste your [Apify API token](https://console.apify.com/settings/integrations) into `apifyToken`.
-3. Set `profiles` (comma-separated handles or URLs), `postsPerProfile`, and optionally `mediaType` (`any`, `image`, `video`, `carousel`).
-4. Click **Test workflow**. The IF node keeps post rows only (profile and summary rows are dropped).
+2. Create an **HTTP Header Auth** credential (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN` — token from [Apify → Settings → Integrations](https://console.apify.com/settings/integrations)) and select it on the HTTP Request node.
+3. Connect **Google Sheets** on the last node and pick the spreadsheet and sheet.
+4. Open the **Config** node: set `profiles` (comma-separated handles or URLs), `postsPerProfile`, and optionally `mediaType` (`any`, `image`, `video`, `carousel`).
+5. Click **Test workflow**. The IF node keeps post rows only (profile and summary rows are dropped).
 
 ### What you get per post
 
@@ -357,4 +313,4 @@ Want the **image and text ads'** copy too? Pair it with [steadyfetch/google-ads-
 
 ### Validated
 
-All five workflows import cleanly into n8n (last checked against n8n 2.35.6 via `n8n import:workflow` on 2026-09-01).
+All eight workflows import cleanly into n8n via `n8n import:workflow` (the five ad-transcript workflows checked against n8n 2.36.9 on 2026-09-01; the three Instagram/keyword workflows re-checked after their library pass on 2026-09-02, see the commit for the exact image tag). Every workflow uses an HTTP Header Auth credential for the Apify token (no token field in the Config node) and ends in a Google Sheets append node.
