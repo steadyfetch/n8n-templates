@@ -14,7 +14,7 @@
    ],
    "parameters": {
     "width": 700,
-    "height": 760,
+    "height": 1060,
     "content": "# Extract hooks, CTAs and transcripts from a competitor's Facebook ads to Google Sheets with Apify\n\nPoint it at one competitor and get a spreadsheet teardown of their active Facebook video ads: hook, CTA, length, language and full transcript, one row per ad.\n\n### Who it's for\nMedia buyers and creative strategists who want a competitor's whole ad account on one sheet.\n\n### How it works\n1. A Set node holds the competitor's Facebook Page URL (or any Ad Library search URL) and the number of ads to fetch.\n2. An HTTP Request starts the Facebook Ads Library scraper on Apify, then an If node and a polling request wait until the run finishes.\n3. The finished run's dataset ID is handed straight to the Facebook Ads Transcript Scraper on Apify, so no ad rows pass through n8n. Each video is transcribed and its hook and CTA extracted. Expired links and music-only ads come back as uncharged misses.\n4. A Code node shapes one row per ad, a Set node tidies the columns and a Google Sheets node appends them.\n\n### Setup\n1. Create an HTTP Header Auth credential (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`) and select it on the three HTTP Request nodes.\n2. Connect Google Sheets and pick the spreadsheet and sheet.\n3. Open the Config node, set the competitor URL and how many ads to process.\n4. Run the workflow.\n\n### Requirements\nAn Apify account (the free plan's credit covers a small test run) and a Google account.\n\n### Customization tips\nSwap the scraper for any Ad Library scraper, the transcript step reads the run's dataset by ID. Sort or filter rows in the Code node. Add a Schedule Trigger to re-run weekly and catch new creatives.\n"
    }
   },
@@ -127,7 +127,7 @@
   {
    "parameters": {
     "method": "POST",
-    "url": "=https://api.apify.com/v2/acts/curious_coder~facebook-ads-library-scraper/runs&waitForFinish=60",
+    "url": "=https://api.apify.com/v2/acts/curious_coder~facebook-ads-library-scraper/runs?waitForFinish=60",
     "sendBody": true,
     "specifyBody": "json",
     "jsonBody": "={{ JSON.stringify({ urls: [{ url: $('Config').first().json.competitorUrl }], count: $('Config').first().json.maxAds }) }}",
@@ -183,7 +183,7 @@
   },
   {
    "parameters": {
-    "url": "=https://api.apify.com/v2/actor-runs/{{ $json.data.id }}&waitForFinish=60",
+    "url": "=https://api.apify.com/v2/actor-runs/{{ $json.data.id }}?waitForFinish=60",
     "options": {
      "timeout": 120000
     },

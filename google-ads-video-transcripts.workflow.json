@@ -14,7 +14,7 @@
    ],
    "parameters": {
     "width": 700,
-    "height": 760,
+    "height": 1060,
     "content": "# Transcribe Google video ads from the Ads Transparency Center to Google Sheets with Apify\n\nTake one advertiser or domain from Google's Ads Transparency Center and get their video ads as text: the first-3-seconds hook, full transcript, length, language and video URL, one row per ad.\n\n### Who it's for\nYouTube and Google Ads media buyers who want to read competitor video scripts at volume instead of watching them one by one.\n\n### How it works\n1. A Set node holds the Transparency Center URL (an advertiser or a domain) and the number of ads to fetch.\n2. An HTTP Request starts the Google Ads Transparency scraper on Apify, then an If node and a polling request wait until the run finishes.\n3. The run's dataset ID is handed to the Google Ads Video Transcript Scraper on Apify, so no ad rows pass through n8n. Each video ad is transcribed and the hook extracted. Videos with no speech come back as uncharged misses.\n4. A Code node shapes one row per ad, a Set node tidies the columns and a Google Sheets node appends them.\n\n### Setup\n1. Create an HTTP Header Auth credential (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`) and select it on the three HTTP Request nodes.\n2. Connect Google Sheets and pick the spreadsheet and sheet.\n3. Open the Config node, set the Transparency Center URL and how many ads to process.\n4. Run the workflow.\n\n### Requirements\nAn Apify account and a Google account.\n\n### Customization tips\nPoint it at a domain to cover every advertiser behind it. Keep the video_url column to review the creative. Add a Schedule Trigger to track an advertiser weekly.\n"
    }
   },
@@ -127,7 +127,7 @@
   {
    "parameters": {
     "method": "POST",
-    "url": "=https://api.apify.com/v2/acts/silva95gustavo~google-ads-scraper/runs&waitForFinish=60",
+    "url": "=https://api.apify.com/v2/acts/silva95gustavo~google-ads-scraper/runs?waitForFinish=60",
     "sendBody": true,
     "specifyBody": "json",
     "jsonBody": "={{ JSON.stringify({ startUrls: [{ url: $('Config').first().json.transparencyCenterUrl }], resultsLimit: $('Config').first().json.maxAds }) }}",
@@ -183,7 +183,7 @@
   },
   {
    "parameters": {
-    "url": "=https://api.apify.com/v2/actor-runs/{{ $json.data.id }}&waitForFinish=60",
+    "url": "=https://api.apify.com/v2/actor-runs/{{ $json.data.id }}?waitForFinish=60",
     "options": {
      "timeout": 120000
     },

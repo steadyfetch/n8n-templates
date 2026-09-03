@@ -14,7 +14,7 @@
    ],
    "parameters": {
     "width": 700,
-    "height": 760,
+    "height": 1020,
     "content": "# Transcribe LinkedIn video ads from the Ad Library to Google Sheets with Apify\n\nTake one advertiser's LinkedIn Ad Library page and get their video ads as text: headline, format, the first-3-seconds hook, full transcript, length and language, one row per ad.\n\n### Who it's for\nB2B marketers and agencies who study competitor LinkedIn campaigns and want the spoken message, not just the thumbnail.\n\n### How it works\n1. A Set node holds the advertiser's Ad Library URL and the number of ads to fetch.\n2. An HTTP Request starts the LinkedIn Ad Library scraper on Apify, then an If node and a polling request wait until the run finishes.\n3. The run's dataset ID is handed to the LinkedIn Ads Transcript Scraper on Apify, so no ad rows pass through n8n. Each video ad is transcribed and the hook extracted. Videos with no speech come back as uncharged misses.\n4. A Code node shapes one row per ad, a Set node tidies the columns and a Google Sheets node appends them.\n\n### Setup\n1. Create an HTTP Header Auth credential (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`) and select it on the three HTTP Request nodes.\n2. Connect Google Sheets and pick the spreadsheet and sheet.\n3. Open the Config node, set the advertiser's Ad Library URL and how many ads to process.\n4. Run the workflow.\n\n### Requirements\nAn Apify account and a Google account.\n\n### Customization tips\nRun several advertisers by looping over a list of URLs. Keep the detail_url column to jump back to the original ad. Add a Schedule Trigger to watch an account monthly.\n"
    }
   },
@@ -127,7 +127,7 @@
   {
    "parameters": {
     "method": "POST",
-    "url": "=https://api.apify.com/v2/acts/silva95gustavo~linkedin-ad-library-scraper/runs&waitForFinish=60",
+    "url": "=https://api.apify.com/v2/acts/silva95gustavo~linkedin-ad-library-scraper/runs?waitForFinish=60",
     "sendBody": true,
     "specifyBody": "json",
     "jsonBody": "={{ JSON.stringify({ startUrls: [{ url: $('Config').first().json.adLibraryUrl }], resultsLimit: $('Config').first().json.maxAds }) }}",
@@ -183,7 +183,7 @@
   },
   {
    "parameters": {
-    "url": "=https://api.apify.com/v2/actor-runs/{{ $json.data.id }}&waitForFinish=60",
+    "url": "=https://api.apify.com/v2/actor-runs/{{ $json.data.id }}?waitForFinish=60",
     "options": {
      "timeout": 120000
     },
