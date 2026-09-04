@@ -1,21 +1,21 @@
 {
- "id": "GoogleAdsVideoTranscripts01",
- "name": "Transcribe Google video ads from the Ads Transparency Center to Google Sheets with Apify",
+ "id": "SfGoogleAdScripts1",
+ "name": "Track a brand's YouTube video ads from the Ads Transparency Center and email AI hook breakdowns with Google Sheets",
  "active": false,
  "nodes": [
   {
-   "id": "sticky-main",
+   "id": "sticky-overview",
    "name": "Overview",
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    -1200,
-    -300
+    -1060,
+    -320
    ],
    "parameters": {
     "width": 700,
-    "height": 1060,
-    "content": "# Transcribe Google video ads from the Ads Transparency Center to Google Sheets with Apify\n\nTake one advertiser or domain from Google's Ads Transparency Center and get their video ads as text: the first-3-seconds hook, full transcript, length, language and video URL, one row per ad.\n\n### Who it's for\nYouTube and Google Ads media buyers who want to read competitor video scripts at volume instead of watching them one by one.\n\n### How it works\n1. A Set node holds the Transparency Center URL (an advertiser or a domain) and the number of ads to fetch.\n2. An HTTP Request starts the Google Ads Transparency scraper on Apify, then an If node and a polling request wait until the run finishes.\n3. The run's dataset ID is handed to the Google Ads Video Transcript Scraper on Apify, so no ad rows pass through n8n. Each video ad is transcribed and the hook extracted. Videos with no speech come back as uncharged misses.\n4. A Code node shapes one row per ad, a Set node tidies the columns and a Google Sheets node appends them.\n\n### Setup\n1. Create an HTTP Header Auth credential (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`) and select it on the three HTTP Request nodes.\n2. Connect Google Sheets and pick the spreadsheet and sheet.\n3. Open the Config node, set the Transparency Center URL and how many ads to process.\n4. Run the workflow.\n\n### Requirements\nAn Apify account and a Google account.\n\n### Customization tips\nPoint it at a domain to cover every advertiser behind it. Keep the video_url column to review the creative. Add a Schedule Trigger to track an advertiser weekly.\n"
+    "height": 1080,
+    "content": "# Track a brand's YouTube video ads from the Ads Transparency Center and email AI hook breakdowns with Google Sheets\n\nEvery Monday this workflow transcribes the new YouTube video ads each brand is running in Google's Ads Transparency Center, has an AI break the script down, appends them to a Google Sheet and emails you the week's breakdown.\n\n### Who it's for\nYouTube and Google Ads performance marketers who would rather read competitor scripts than watch them.\n\n### How it works\n1. A Schedule Trigger fires weekly. One Config node holds the domains, region, ads per domain and the recipient.\n2. It loops over the domains: each Transparency Center page is scraped on Apify, then that run's dataset goes straight to the Google Ads Video Transcript Scraper.\n3. Remove Duplicates drops every creative seen in an earlier execution, so a weekly run only reports new ads. Nothing new means no email is sent.\n4. An Information Extractor breaks each new ad down: hook type, promise, proof, CTA and script structure.\n5. Google Sheets appends a row per ad; Gmail sends a digest counting transcribed and silent ads separately.\n\n### Setup\n1. Create an HTTP Header Auth credential (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`) and select it on the three HTTP Request nodes.\n2. Add a Groq credential on the chat model node - a drop-in swap for OpenAI or Anthropic.\n3. Connect Google Sheets and Gmail, then set your domains, region and recipient in Config.\n\n### Requirements\nAn Apify account, a chat model account and a Google account. Transcription is charged only when a transcript is delivered; music-only ads are uncharged and still reach the sheet with their status.\n\n### Customization\nPoint it at advertiser names instead of domains, or change the region. Send the digest to Slack instead of Gmail."
    }
   },
   {
@@ -24,14 +24,14 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    -480,
-    -160
+    -320,
+    -280
    ],
    "parameters": {
     "color": 7,
-    "width": 420,
-    "height": 300,
-    "content": "## 1. Configure\nYour input URL and item count live in one Set node."
+    "width": 700,
+    "height": 560,
+    "content": "## 1. Configure\nAdvertiser domains, region, ads per domain and the digest recipient live in one Set node."
    }
   },
   {
@@ -40,14 +40,14 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    -40,
-    -160
+    400,
+    -280
    ],
    "parameters": {
     "color": 7,
-    "width": 420,
-    "height": 520,
-    "content": "## 2. Scrape and wait\nStart the Apify scraper run, then poll it every few seconds until it finishes."
+    "width": 960,
+    "height": 840,
+    "content": "## 2. Fetch and transcribe\nOne domain at a time: scrape the Transparency Center, wait for the run, then transcribe that run's dataset."
    }
   },
   {
@@ -56,14 +56,14 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    400,
-    -160
+    1400,
+    -280
    ],
    "parameters": {
     "color": 7,
-    "width": 640,
-    "height": 300,
-    "content": "## 3. Transcribe and shape rows\nHand the run's dataset ID to the transcript actor, then build one row per item."
+    "width": 520,
+    "height": 720,
+    "content": "## 3. Keep only what is new\nRemove Duplicates remembers every creative ID from previous executions, so a weekly run reports new ads only."
    }
   },
   {
@@ -72,25 +72,82 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    1060,
-    -160
+    1960,
+    -280
    ],
    "parameters": {
     "color": 7,
-    "width": 240,
-    "height": 300,
-    "content": "## 4. Save\nAppend the rows to Google Sheets."
+    "width": 400,
+    "height": 700,
+    "content": "## 4. Break the script down\nThe model labels the hook, the promise, the proof and the structure. Swap Groq for OpenAI or Anthropic."
    }
   },
   {
+   "id": "sticky-sec-5",
+   "name": "Section 5",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    2400,
+    -280
+   ],
+   "parameters": {
+    "color": 7,
+    "width": 700,
+    "height": 400,
+    "content": "## 5. Save\nOne tidy row per new ad, silent ads included with their status."
+   }
+  },
+  {
+   "id": "sticky-sec-6",
+   "name": "Section 6",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    3120,
+    -280
+   ],
+   "parameters": {
+    "color": 7,
+    "width": 700,
+    "height": 400,
+    "content": "## 6. Email\nOne email per week, counting transcribed and silent ads separately."
+   }
+  },
+  {
+   "parameters": {
+    "rule": {
+     "interval": [
+      {
+       "field": "weeks",
+       "weeksInterval": 1,
+       "triggerAtDay": [
+        1
+       ],
+       "triggerAtHour": 8,
+       "triggerAtMinute": 0
+      }
+     ]
+    }
+   },
+   "id": "sch-0001",
+   "name": "Every Monday morning",
+   "type": "n8n-nodes-base.scheduleTrigger",
+   "typeVersion": 1.4,
+   "position": [
+    -260,
+    -140
+   ]
+  },
+  {
    "parameters": {},
-   "id": "4a1f0001-0000-4000-8000-000000000001",
+   "id": "man-0002",
    "name": "When clicking 'Test workflow'",
    "type": "n8n-nodes-base.manualTrigger",
    "typeVersion": 1,
    "position": [
-    -440,
-    0
+    -260,
+    60
    ]
   },
   {
@@ -98,55 +155,93 @@
     "assignments": {
      "assignments": [
       {
-       "id": "cfg-url",
-       "name": "transparencyCenterUrl",
-       "value": "https://adstransparency.google.com/?region=US&domain=hellofresh.com&preset-date=Last+30+days",
+       "id": "cfg-domains",
+       "name": "advertiserDomains",
+       "value": "hellofresh.com\nsquarespace.com",
+       "type": "string"
+      },
+      {
+       "id": "cfg-region",
+       "name": "region",
+       "value": "US",
        "type": "string"
       },
       {
        "id": "cfg-max",
-       "name": "maxAds",
-       "value": 25,
+       "name": "maxAdsPerDomain",
+       "value": 10,
        "type": "number"
+      },
+      {
+       "id": "cfg-to",
+       "name": "digestRecipient",
+       "value": "you@example.com",
+       "type": "string"
       }
      ]
     },
     "options": {}
    },
-   "id": "4a1f0002-0000-4000-8000-000000000002",
+   "id": "set-0003",
    "name": "Config",
    "type": "n8n-nodes-base.set",
    "typeVersion": 3.4,
    "position": [
-    -220,
-    0
-   ],
-   "notes": "transparencyCenterUrl = a Google Ads Transparency Center URL with an advertiser or domain selected — open https://adstransparency.google.com/, pick the advertiser (or type a domain), set region/date, and copy the address bar. Advertiser form: https://adstransparency.google.com/advertiser/AR…?region=US. maxAds = how many ads to pull (image/text ads included — only the video ones are transcribed).",
-   "notesInFlow": true
+    -40,
+    -40
+   ]
   },
   {
    "parameters": {
-    "method": "POST",
-    "url": "=https://api.apify.com/v2/acts/silva95gustavo~google-ads-scraper/runs?waitForFinish=60",
-    "sendBody": true,
-    "specifyBody": "json",
-    "jsonBody": "={{ JSON.stringify({ startUrls: [{ url: $('Config').first().json.transparencyCenterUrl }], resultsLimit: $('Config').first().json.maxAds }) }}",
+    "jsCode": "// One item per advertiser domain, so the loop below handles them one at a time.\nconst raw = String($json.advertiserDomains || '');\nconst targets = raw.split(/\\r?\\n|,/).map((t) => t.trim()).filter(Boolean);\nif (!targets.length) {\n  throw new Error('No advertiser domain set. Open the Config node and add at least one.');\n}\nreturn targets.map((target) => ({ json: { target } }));"
+   },
+   "id": "code-0004",
+   "name": "Domains, one per item",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    180,
+    -40
+   ]
+  },
+  {
+   "parameters": {
+    "batchSize": 1,
+    "options": {}
+   },
+   "id": "loop-0005",
+   "name": "Loop over advertisers",
+   "type": "n8n-nodes-base.splitInBatches",
+   "typeVersion": 3,
+   "position": [
+    400,
+    -40
+   ]
+  },
+  {
+   "parameters": {
     "options": {
      "timeout": 120000
     },
     "authentication": "genericCredentialType",
-    "genericAuthType": "httpHeaderAuth"
+    "genericAuthType": "httpHeaderAuth",
+    "method": "POST",
+    "url": "=https://api.apify.com/v2/acts/silva95gustavo~google-ads-scraper/runs?waitForFinish=60",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ startUrls: [{ url: 'https://adstransparency.google.com/?region=' + $('Config').first().json.region + '&domain=' + $json.target }], resultsLimit: $('Config').first().json.maxAdsPerDomain }) }}"
    },
-   "id": "4a1f0003-0000-4000-8000-000000000003",
-   "name": "Scrape the Transparency Center (advertiser)",
+   "id": "http-0006",
+   "name": "Scrape the Transparency Center",
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    0,
-    0
+    620,
+    200
    ],
-   "notes": "Starts silva95gustavo/google-ads-scraper and waits up to 60s. Returns the run object — we only need data.defaultDatasetId. To use another Transparency Center scraper, swap the actor slug + the JSON body to its input fields.",
-   "notesInFlow": true
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000
   },
   {
    "parameters": {
@@ -158,7 +253,7 @@
      },
      "conditions": [
       {
-       "id": "run-finished",
+       "id": "cond-0007",
        "leftValue": "={{ ['SUCCEEDED', 'FAILED', 'ABORTED', 'TIMED-OUT'].includes($json.data.status) }}",
        "rightValue": true,
        "operator": {
@@ -172,70 +267,205 @@
     },
     "options": {}
    },
-   "id": "4a1f0004-0000-4000-8000-000000000004",
+   "id": "if-0008",
    "name": "Scrape finished?",
    "type": "n8n-nodes-base.if",
    "typeVersion": 2,
    "position": [
-    220,
-    0
+    840,
+    200
    ]
   },
   {
    "parameters": {
-    "url": "=https://api.apify.com/v2/actor-runs/{{ $json.data.id }}?waitForFinish=60",
     "options": {
      "timeout": 120000
     },
     "authentication": "genericCredentialType",
-    "genericAuthType": "httpHeaderAuth"
+    "genericAuthType": "httpHeaderAuth",
+    "url": "=https://api.apify.com/v2/actor-runs/{{ $json.data.id }}?waitForFinish=60"
    },
-   "id": "4a1f0005-0000-4000-8000-000000000005",
-   "name": "Wait for scrape (poll run)",
+   "id": "http-0009",
+   "name": "Wait for the scrape",
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    220,
-    220
+    840,
+    420
    ],
-   "notes": "Loops back until the scraper run finishes (each poll waits up to 60s server-side).",
-   "notesInFlow": true
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000
   },
   {
    "parameters": {
-    "method": "POST",
-    "url": "=https://api.apify.com/v2/acts/steadyfetch~google-ads-video-transcript-scraper/run-sync-get-dataset-items",
-    "sendBody": true,
-    "specifyBody": "json",
-    "jsonBody": "={{ JSON.stringify({ datasetId: $json.data.defaultDatasetId, maxItems: $('Config').first().json.maxAds }) }}",
     "options": {
      "timeout": 300000
     },
     "authentication": "genericCredentialType",
-    "genericAuthType": "httpHeaderAuth"
+    "genericAuthType": "httpHeaderAuth",
+    "method": "POST",
+    "url": "=https://api.apify.com/v2/acts/steadyfetch~google-ads-video-transcript-scraper/run-sync-get-dataset-items",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ datasetId: $json.data.defaultDatasetId, maxItems: $('Config').first().json.maxAdsPerDomain }) }}"
    },
-   "id": "4a1f0006-0000-4000-8000-000000000006",
-   "name": "Transcribe video ads by dataset ID: hooks & transcripts",
+   "id": "http-0010",
+   "name": "Transcribe the video ads",
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    440,
-    0
+    1080,
+    200
    ],
-   "notes": "Chains steadyfetch/google-ads-video-transcript-scraper on the scraper run's dataset ID (no ad rows pass through n8n, so big batches stay light). One row per video ad: transcript + first-3s hook + advertiser metadata; rows without a video come back as uncharged no_creative_found. Charged only when a transcript is delivered.",
-   "notesInFlow": true
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "alwaysOutputData": true
   },
   {
    "parameters": {
-    "jsCode": "// One teardown row per ad. Transcribed video ads first, longest first.\nconst rows = $input.all().map(({ json: ad }) => {\n  const transcript = ad.transcript || '';\n  const words = transcript.trim() ? transcript.trim().split(/\\s+/).length : 0;\n  return {\n    advertiser: ad.advertiserName || '',\n    creative_id: ad.creativeId || '',\n    video_id: ad.videoId || '',\n    status: ad.status || '',\n    hook_first_3s: ad.hook3s || '',\n    seconds: ad.durationSeconds ?? null,\n    transcript_words: words,\n    language: ad.language || '',\n    charged: ad.charged === true,\n    transcript,\n    transcript_source: ad.transcriptSource || '',\n    video_url: ad.videoUrl || '',\n    note: ad.statusReason || '',\n  };\n});\n\nrows.sort((a, b) => (b.status === 'transcribed') - (a.status === 'transcribed') || (b.seconds || 0) - (a.seconds || 0));\n\nreturn rows.map((row) => ({ json: row }));"
+    "operation": "removeItemsSeenInPreviousExecutions",
+    "logic": "removeItemsWithAlreadySeenKeyValues",
+    "dedupeValue": "={{ $json.creativeId || $json.videoUrl || 'no-ads-this-run' }}",
+    "options": {}
    },
-   "id": "4a1f0007-0000-4000-8000-000000000007",
-   "name": "Teardown rows: one per ad",
+   "id": "dedup-0011",
+   "name": "Only creatives we have not seen before",
+   "type": "n8n-nodes-base.removeDuplicates",
+   "typeVersion": 2,
+   "position": [
+    1480,
+    -40
+   ],
+   "alwaysOutputData": true
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "cond-0012",
+       "leftValue": "={{ !!($json.creativeId || $json.videoUrl) }}",
+       "rightValue": true,
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "if-0013",
+   "name": "Any new ads?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    1700,
+    -40
+   ]
+  },
+  {
+   "parameters": {},
+   "id": "noop-0014",
+   "name": "Nothing new this week",
+   "type": "n8n-nodes-base.noOp",
+   "typeVersion": 1,
+   "position": [
+    1700,
+    240
+   ]
+  },
+  {
+   "parameters": {
+    "text": "={{ 'Advertiser: ' + ($json.advertiserName || 'unknown') + '\\nLength: ' + ($json.durationSeconds || 0) + ' seconds\\nSpoken transcript: ' + ($json.transcript || '(this ad has no speech - it is music or text only)') }}",
+    "attributes": {
+     "attributes": [
+      {
+       "name": "hook_type",
+       "type": "string",
+       "description": "How the ad opens. One of: question, statistic, pain-point, story, bold-claim, demo, other.",
+       "required": false
+      },
+      {
+       "name": "promise",
+       "type": "string",
+       "description": "The main benefit the ad claims, in a few words.",
+       "required": false
+      },
+      {
+       "name": "proof_element",
+       "type": "string",
+       "description": "The proof it leans on. One of: testimonial, demo, stat, none.",
+       "required": false
+      },
+      {
+       "name": "cta_type",
+       "type": "string",
+       "description": "The call to action type, for example shop now, sign up, free trial, learn more, none.",
+       "required": false
+      },
+      {
+       "name": "script_structure",
+       "type": "string",
+       "description": "The shape of the script. One of: problem-solution, listicle, testimonial, demo, other.",
+       "required": false
+      },
+      {
+       "name": "summary",
+       "type": "string",
+       "description": "What the ad says, in 25 words or fewer.",
+       "required": false
+      }
+     ]
+    },
+    "options": {
+     "systemPromptTemplate": "You break down YouTube video ad scripts for a performance marketing sheet. Answer only from the transcript given. If the ad has no speech, say so plainly in the summary and use \"none\" where a field cannot be answered."
+    }
+   },
+   "id": "ai-0015",
+   "name": "Break the ad script down",
+   "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+   "typeVersion": 1.2,
+   "position": [
+    2020,
+    -40
+   ],
+   "onError": "continueRegularOutput"
+  },
+  {
+   "parameters": {
+    "model": "openai/gpt-oss-120b",
+    "options": {}
+   },
+   "id": "groq-0016",
+   "name": "Groq chat model",
+   "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+   "typeVersion": 1,
+   "position": [
+    1980,
+    180
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "// The AI node replaces each item with its extracted attributes, so put the\n// original row back together with them. Items come back in the same order.\nconst source = $('Any new ads?').all();\nreturn $input.all().map((item, i) => {\n  const row = { ...(source[i] ? source[i].json : {}) };\n  const ai = item.json.output || {};\n  const transcript = row.transcript || '';\n  row.transcript_words = transcript.trim() ? transcript.trim().split(/\\s+/).length : 0;\n  row.seconds = row.durationSeconds ?? null;\n  row.has_speech = row.status === 'transcribed';\n  return { json: { ...row, ...ai } };\n});"
+   },
+   "id": "code-0017",
+   "name": "Build one row per ad",
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    660,
-    0
+    2440,
+    -40
    ]
   },
   {
@@ -243,102 +473,122 @@
     "assignments": {
      "assignments": [
       {
-       "id": "t-adv",
+       "id": "c-1",
        "name": "advertiser",
-       "value": "={{ $json.advertiser }}",
+       "value": "={{ $json.advertiserName }}",
        "type": "string"
       },
       {
-       "id": "t-cid",
+       "id": "c-2",
        "name": "creative_id",
-       "value": "={{ $json.creative_id }}",
+       "value": "={{ $json.creativeId }}",
        "type": "string"
       },
       {
-       "id": "t-vid",
-       "name": "video_id",
-       "value": "={{ $json.video_id }}",
-       "type": "string"
-      },
-      {
-       "id": "t-status",
+       "id": "c-3",
        "name": "status",
        "value": "={{ $json.status }}",
        "type": "string"
       },
       {
-       "id": "t-hook",
-       "name": "hook_first_3s",
-       "value": "={{ $json.hook_first_3s }}",
+       "id": "c-4",
+       "name": "hook_type",
+       "value": "={{ $json.hook_type }}",
        "type": "string"
       },
       {
-       "id": "t-sec",
+       "id": "c-5",
+       "name": "hook_first_3s",
+       "value": "={{ $json.hook3s }}",
+       "type": "string"
+      },
+      {
+       "id": "c-6",
+       "name": "promise",
+       "value": "={{ $json.promise }}",
+       "type": "string"
+      },
+      {
+       "id": "c-7",
+       "name": "proof_element",
+       "value": "={{ $json.proof_element }}",
+       "type": "string"
+      },
+      {
+       "id": "c-8",
+       "name": "cta_type",
+       "value": "={{ $json.cta_type }}",
+       "type": "string"
+      },
+      {
+       "id": "c-9",
+       "name": "script_structure",
+       "value": "={{ $json.script_structure }}",
+       "type": "string"
+      },
+      {
+       "id": "c-10",
+       "name": "summary",
+       "value": "={{ $json.summary }}",
+       "type": "string"
+      },
+      {
+       "id": "c-11",
        "name": "seconds",
        "value": "={{ $json.seconds }}",
        "type": "number"
       },
       {
-       "id": "t-words",
+       "id": "c-12",
        "name": "transcript_words",
        "value": "={{ $json.transcript_words }}",
        "type": "number"
       },
       {
-       "id": "t-lang",
+       "id": "c-13",
        "name": "language",
        "value": "={{ $json.language }}",
        "type": "string"
       },
       {
-       "id": "t-charged",
+       "id": "c-14",
        "name": "charged",
        "value": "={{ $json.charged }}",
        "type": "boolean"
       },
       {
-       "id": "t-text",
+       "id": "c-15",
        "name": "transcript",
        "value": "={{ $json.transcript }}",
        "type": "string"
       },
       {
-       "id": "t-url",
+       "id": "c-16",
        "name": "video_url",
-       "value": "={{ $json.video_url }}",
+       "value": "={{ $json.videoUrl }}",
        "type": "string"
       }
      ]
     },
     "options": {}
    },
-   "id": "4a1f0008-0000-4000-8000-000000000008",
-   "name": "Teardown table (one row per item)",
+   "id": "set-0018",
+   "name": "Column order",
    "type": "n8n-nodes-base.set",
    "typeVersion": 3.4,
    "position": [
-    880,
-    0
-   ],
-   "notes": "Terminal step: a clean spreadsheet-shaped row per ad. Wire Google Sheets / Airtable / Slack / a database after this node.",
-   "notesInFlow": true
+    2660,
+    -40
+   ]
   },
   {
-   "id": "append-google-sheets",
-   "name": "Append rows to Google Sheets",
-   "type": "n8n-nodes-base.googleSheets",
-   "typeVersion": 4.7,
-   "position": [
-    1100,
-    0
-   ],
    "parameters": {
     "operation": "append",
     "documentId": {
      "__rl": true,
      "mode": "list",
      "value": "",
-     "cachedResultName": "Ad transcripts"
+     "cachedResultName": "Google video ad scripts"
     },
     "sheetName": {
      "__rl": true,
@@ -353,10 +603,76 @@
      "schema": []
     },
     "options": {}
-   }
+   },
+   "id": "gs-0019",
+   "name": "Append the new rows to Google Sheets",
+   "type": "n8n-nodes-base.googleSheets",
+   "typeVersion": 4.7,
+   "position": [
+    2880,
+    -40
+   ]
+  },
+  {
+   "parameters": {
+    "aggregate": "aggregateAllItemData",
+    "destinationFieldName": "rows",
+    "options": {}
+   },
+   "id": "agg-0020",
+   "name": "Collect the new ads",
+   "type": "n8n-nodes-base.aggregate",
+   "typeVersion": 1,
+   "position": [
+    3160,
+    -40
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "// Longest transcribed ads first; silent ads are counted, not listed.\nconst rows = $input.first().json.rows || [];\nconst spoken = rows.filter((r) => r.status === 'transcribed');\nconst silent = rows.length - spoken.length;\nconst top = spoken.slice().sort((a, b) => (b.seconds || 0) - (a.seconds || 0)).slice(0, 5);\nconst brands = [...new Set(rows.map((r) => r.advertiser).filter(Boolean))].join(', ') || 'your advertisers';\nconst lines = top.map((r) => `- ${r.advertiser}: ${r.hook_type} hook, promise \"${r.promise || ''}\", ${r.script_structure} structure (${r.seconds || 0}s)\\n  ${r.video_url || ''}`);\nconst digest = [\n  `${rows.length} new video ad${rows.length === 1 ? '' : 's'} from ${brands}.`,\n  `${spoken.length} transcribed, ${silent} with no speech (uncharged).`,\n  '',\n  ...lines,\n].join('\\n');\nreturn [{ json: { digest, subject: `New video ads from ${brands}: ${rows.length} this week` } }];"
+   },
+   "id": "code-0021",
+   "name": "Write the email digest",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    3380,
+    -40
+   ]
+  },
+  {
+   "parameters": {
+    "resource": "message",
+    "operation": "send",
+    "sendTo": "={{ $('Config').first().json.digestRecipient }}",
+    "subject": "={{ $json.subject }}",
+    "emailType": "text",
+    "message": "={{ $json.digest }}",
+    "options": {}
+   },
+   "id": "gmail-0022",
+   "name": "Email the weekly breakdown",
+   "type": "n8n-nodes-base.gmail",
+   "typeVersion": 2.2,
+   "position": [
+    3600,
+    -40
+   ]
   }
  ],
  "connections": {
+  "Every Monday morning": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
   "When clicking 'Test workflow'": {
    "main": [
     [
@@ -372,14 +688,43 @@
    "main": [
     [
      {
-      "node": "Scrape the Transparency Center (advertiser)",
+      "node": "Domains, one per item",
       "type": "main",
       "index": 0
      }
     ]
    ]
   },
-  "Scrape the Transparency Center (advertiser)": {
+  "Domains, one per item": {
+   "main": [
+    [
+     {
+      "node": "Loop over advertisers",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Loop over advertisers": {
+   "main": [
+    [
+     {
+      "node": "Only creatives we have not seen before",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Scrape the Transparency Center",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Scrape the Transparency Center": {
    "main": [
     [
      {
@@ -394,21 +739,21 @@
    "main": [
     [
      {
-      "node": "Transcribe video ads by dataset ID: hooks & transcripts",
+      "node": "Transcribe the video ads",
       "type": "main",
       "index": 0
      }
     ],
     [
      {
-      "node": "Wait for scrape (poll run)",
+      "node": "Wait for the scrape",
       "type": "main",
       "index": 0
      }
     ]
    ]
   },
-  "Wait for scrape (poll run)": {
+  "Wait for the scrape": {
    "main": [
     [
      {
@@ -419,34 +764,118 @@
     ]
    ]
   },
-  "Transcribe video ads by dataset ID: hooks & transcripts": {
+  "Transcribe the video ads": {
    "main": [
     [
      {
-      "node": "Teardown rows: one per ad",
+      "node": "Loop over advertisers",
       "type": "main",
       "index": 0
      }
     ]
    ]
   },
-  "Teardown rows: one per ad": {
+  "Only creatives we have not seen before": {
    "main": [
     [
      {
-      "node": "Teardown table (one row per item)",
+      "node": "Any new ads?",
       "type": "main",
       "index": 0
      }
     ]
    ]
   },
-  "Teardown table (one row per item)": {
+  "Any new ads?": {
    "main": [
     [
      {
-      "node": "Append rows to Google Sheets",
+      "node": "Break the ad script down",
       "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Nothing new this week",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Break the ad script down": {
+   "main": [
+    [
+     {
+      "node": "Build one row per ad",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Build one row per ad": {
+   "main": [
+    [
+     {
+      "node": "Column order",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Column order": {
+   "main": [
+    [
+     {
+      "node": "Append the new rows to Google Sheets",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Append the new rows to Google Sheets": {
+   "main": [
+    [
+     {
+      "node": "Collect the new ads",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Collect the new ads": {
+   "main": [
+    [
+     {
+      "node": "Write the email digest",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Write the email digest": {
+   "main": [
+    [
+     {
+      "node": "Email the weekly breakdown",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Groq chat model": {
+   "ai_languageModel": [
+    [
+     {
+      "node": "Break the ad script down",
+      "type": "ai_languageModel",
       "index": 0
      }
     ]
@@ -456,5 +885,8 @@
  "settings": {
   "executionOrder": "v1"
  },
- "pinData": {}
+ "pinData": {},
+ "meta": {
+  "templateCredsSetupCompleted": true
+ }
 }

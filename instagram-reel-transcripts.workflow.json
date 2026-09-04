@@ -1,21 +1,21 @@
 {
- "id": "IgReelTranscripts01",
- "name": "Transcribe Instagram Reels from a creator's profile to Google Sheets with Apify",
+ "id": "SfReelSwipeFile1",
+ "name": "Build a Reels swipe file from creator profiles with AI hook rewrites in Google Sheets and a Telegram digest",
  "active": false,
  "nodes": [
   {
-   "id": "sticky-main",
+   "id": "sticky-overview",
    "name": "Overview",
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    -980,
-    -300
+    -1060,
+    -320
    ],
    "parameters": {
     "width": 700,
-    "height": 1100,
-    "content": "# Transcribe Instagram Reels from a creator's profile to Google Sheets with Apify\n\nGive it one Instagram handle and get that creator's most recent reels as text: the first-3-seconds hook, the full spoken transcript, language, duration, caption, plays and likes, one row per reel, appended to a Google Sheet.\n\n### Who it's for\nCreative strategists, UGC teams and social managers who study what a creator actually says in their reels, at volume, without watching each one.\n\n### How it works\n1. A Set node holds the creator's handle, how many recent reels to read, and whether to read on-screen text off silent reels.\n2. An HTTP Request runs the Instagram Reel Transcript Scraper on Apify: it lists the creator's latest reels itself, transcribes the speech and extracts the opening hook. Reels with no speech come back as uncharged rows.\n3. An If node keeps the reel rows (the run summary row is dropped), a Set node tidies the fields and a Google Sheets node appends one row per reel.\n\n### Setup\n1. Create an HTTP Header Auth credential (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`) and select it on the HTTP Request node.\n2. Connect Google Sheets and pick the spreadsheet and sheet.\n3. Open the Config node, set the handle (`nasa`, `@nasa` or a profile URL) and how many reels to read.\n4. Run the workflow.\n\n### Requirements\nAn Apify account and a Google account. A 10-reel test is about $0.15 on the free plan; the first 3 minutes of each reel are included, and a longer video adds $0.005 per started minute past that.\n\n### Customization tips\nLoop over a list of handles to cover several creators. Switch `includeOnScreenText` on to read text off silent reels. Add a Schedule Trigger and the actor's watchlist fields (`watchlistId`, `newReelsOnly`) to pay only for new reels each week.\n"
+    "height": 1060,
+    "content": "# Build a Reels swipe file from creator profiles with AI hook rewrites in Google Sheets and a Telegram digest\n\nEvery Monday this workflow transcribes the newest Reels from the creators you follow, has an AI label each hook and rewrite it for your own brand, appends the new reels to a Google Sheet and sends the week's five best to Telegram.\n\n### Who it's for\nUGC creators and social media managers who keep a swipe file of hooks that work and want a rewrite they can film.\n\n### How it works\n1. A Schedule Trigger fires weekly. Config holds the handles, reels per creator, a one-line description of your brand and your Telegram chat ID.\n2. It loops over the handles, running the Instagram Reel Transcript Scraper on Apify for each. The actor lists the newest reels and transcribes them.\n3. Remove Duplicates drops every reel seen in an earlier execution, so the swipe file only grows. Nothing new means nothing is sent.\n4. An Information Extractor labels the hook type, content pillar, emotional trigger and call to action, then rewrites the hook for your brand in 20 words.\n5. Google Sheets appends a row per reel; Telegram gets the five most-liked new hooks with their rewrites.\n\n### Setup\n1. Create an HTTP Header Auth credential (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`) and select it on the HTTP Request node.\n2. Add a Groq credential on the chat model node - a drop-in swap for OpenAI or Anthropic.\n3. Connect Google Sheets and Telegram, then list your creators and describe your brand in Config.\n\n### Requirements\nAn Apify account, a chat model account, Google Sheets and a Telegram bot. Transcription is charged only when text is delivered.\n\n### Customization\nTurn `includeOnScreenText` on to read silent reels. Rank the digest by plays in the Code node."
    }
   },
   {
@@ -24,14 +24,14 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    -260,
-    -160
+    -320,
+    -280
    ],
    "parameters": {
     "color": 7,
-    "width": 420,
-    "height": 300,
-    "content": "## 1. Configure\nThe creator's handle, the reel count and the on-screen-text switch live in one Set node."
+    "width": 700,
+    "height": 560,
+    "content": "## 1. Configure\nCreator handles, reels per creator, your brand line and the Telegram chat live in one Set node."
    }
   },
   {
@@ -40,14 +40,14 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    180,
-    -160
+    380,
+    -280
    ],
    "parameters": {
     "color": 7,
-    "width": 640,
-    "height": 300,
-    "content": "## 2. Transcribe\nOne Apify call lists the creator's latest reels and transcribes them (hook, full speech, language); the If node keeps reel rows only."
+    "width": 520,
+    "height": 700,
+    "content": "## 2. Transcribe\nOne handle at a time: the Apify actor lists the newest reels and transcribes the speech."
    }
   },
   {
@@ -56,25 +56,98 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    840,
-    -160
+    960,
+    -280
    ],
    "parameters": {
     "color": 7,
-    "width": 460,
-    "height": 300,
-    "content": "## 3. Save\nTidy the columns and append one row per reel to Google Sheets."
+    "width": 720,
+    "height": 720,
+    "content": "## 3. Keep only what is new\nThe run summary row is dropped, then Remove Duplicates forgets nothing: every reel URL seen in an earlier execution is skipped."
    }
   },
   {
+   "id": "sticky-sec-4",
+   "name": "Section 4",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    1680,
+    -280
+   ],
+   "parameters": {
+    "color": 7,
+    "width": 420,
+    "height": 700,
+    "content": "## 4. Analyse and rewrite\nThe model labels the hook and rewrites it for your brand. Swap Groq for OpenAI or Anthropic."
+   }
+  },
+  {
+   "id": "sticky-sec-5",
+   "name": "Section 5",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    2100,
+    -280
+   ],
+   "parameters": {
+    "color": 7,
+    "width": 700,
+    "height": 400,
+    "content": "## 5. Save\nOne tidy row per new reel is appended to your swipe file."
+   }
+  },
+  {
+   "id": "sticky-sec-6",
+   "name": "Section 6",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    2820,
+    -280
+   ],
+   "parameters": {
+    "color": 7,
+    "width": 700,
+    "height": 400,
+    "content": "## 6. Digest\nThe five most-liked new hooks and their rewrites go to Telegram."
+   }
+  },
+  {
+   "parameters": {
+    "rule": {
+     "interval": [
+      {
+       "field": "weeks",
+       "weeksInterval": 1,
+       "triggerAtDay": [
+        1
+       ],
+       "triggerAtHour": 8,
+       "triggerAtMinute": 0
+      }
+     ]
+    }
+   },
+   "id": "sch-0001",
+   "name": "Every Monday morning",
+   "type": "n8n-nodes-base.scheduleTrigger",
+   "typeVersion": 1.4,
+   "position": [
+    -260,
+    -140
+   ]
+  },
+  {
    "parameters": {},
-   "id": "9b2e0001-0000-4000-8000-000000000001",
+   "id": "man-0002",
    "name": "When clicking 'Test workflow'",
    "type": "n8n-nodes-base.manualTrigger",
    "typeVersion": 1,
    "position": [
-    -220,
-    0
+    -260,
+    60
    ]
   },
   {
@@ -82,16 +155,28 @@
     "assignments": {
      "assignments": [
       {
-       "id": "cfg-handle",
-       "name": "instagramHandle",
-       "value": "nasa",
+       "id": "cfg-handles",
+       "name": "creatorHandles",
+       "value": "bbcnews\nnatgeo",
        "type": "string"
       },
       {
        "id": "cfg-max",
-       "name": "maxReels",
-       "value": 10,
+       "name": "reelsPerProfile",
+       "value": 6,
        "type": "number"
+      },
+      {
+       "id": "cfg-brand",
+       "name": "yourBrand",
+       "value": "A small-batch coffee roastery selling single-origin beans by subscription",
+       "type": "string"
+      },
+      {
+       "id": "cfg-chat",
+       "name": "telegramChatId",
+       "value": "123456789",
+       "type": "string"
       },
       {
        "id": "cfg-ocr",
@@ -103,46 +188,69 @@
     },
     "options": {}
    },
-   "id": "9b2e0001-0000-4000-8000-000000000002",
+   "id": "set-0003",
    "name": "Config",
    "type": "n8n-nodes-base.set",
    "typeVersion": 3.4,
    "position": [
-    0,
-    0
+    -40,
+    -40
    ]
   },
   {
    "parameters": {
-    "method": "POST",
-    "url": "=https://api.apify.com/v2/acts/steadyfetch~instagram-reel-transcript-scraper/run-sync-get-dataset-items",
-    "sendBody": true,
-    "specifyBody": "json",
-    "jsonBody": "={{ JSON.stringify({ handles: [ String($('Config').first().json.instagramHandle) ], maxReelsPerHandle: $('Config').first().json.maxReels, includeOnScreenText: $('Config').first().json.includeOnScreenText === true }) }}",
+    "jsCode": "// One item per Instagram handle, so the loop below handles them one at a time.\nconst raw = String($json.creatorHandles || '');\nconst targets = raw.split(/\\r?\\n|,/).map((t) => t.trim()).filter(Boolean);\nif (!targets.length) {\n  throw new Error('No Instagram handle set. Open the Config node and add at least one.');\n}\nreturn targets.map((target) => ({ json: { target } }));"
+   },
+   "id": "code-0004",
+   "name": "Creators, one per item",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    180,
+    -40
+   ]
+  },
+  {
+   "parameters": {
+    "batchSize": 1,
+    "options": {}
+   },
+   "id": "loop-0005",
+   "name": "Loop over creators",
+   "type": "n8n-nodes-base.splitInBatches",
+   "typeVersion": 3,
+   "position": [
+    400,
+    -40
+   ]
+  },
+  {
+   "parameters": {
     "options": {
      "timeout": 300000
     },
     "authentication": "genericCredentialType",
-    "genericAuthType": "httpHeaderAuth"
+    "genericAuthType": "httpHeaderAuth",
+    "method": "POST",
+    "url": "=https://api.apify.com/v2/acts/steadyfetch~instagram-reel-transcript-scraper/run-sync-get-dataset-items",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ handles: [ String($json.target) ], maxReelsPerHandle: $('Config').first().json.reelsPerProfile, includeOnScreenText: $('Config').first().json.includeOnScreenText === true }) }}"
    },
-   "id": "9b2e0001-0000-4000-8000-000000000003",
-   "name": "Transcribe the creator's reels",
+   "id": "http-0006",
+   "name": "Transcribe this creator's reels",
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    220,
-    0
-   ]
+    620,
+    200
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "alwaysOutputData": true
   },
   {
-   "id": "9b2e0001-0000-4000-8000-000000000006",
-   "name": "Reel rows only (skip the run summary)",
-   "type": "n8n-nodes-base.if",
-   "typeVersion": 2,
-   "position": [
-    440,
-    0
-   ],
    "parameters": {
     "conditions": {
      "options": {
@@ -152,7 +260,7 @@
      },
      "conditions": [
       {
-       "id": "9b2e0001-0000-4000-8000-000000000094",
+       "id": "cond-0007",
        "leftValue": "={{ typeof $json.shortCode === 'string' && $json.shortCode.length > 0 }}",
        "rightValue": true,
        "operator": {
@@ -165,101 +273,283 @@
      "combinator": "and"
     },
     "options": {}
-   }
+   },
+   "id": "if-0008",
+   "name": "Reel rows only (skip the run summary)",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    1020,
+    -40
+   ],
+   "alwaysOutputData": true
+  },
+  {
+   "parameters": {
+    "operation": "removeItemsSeenInPreviousExecutions",
+    "logic": "removeItemsWithAlreadySeenKeyValues",
+    "dedupeValue": "={{ $json.postUrl || 'no-reels-this-run' }}",
+    "options": {}
+   },
+   "id": "dedup-0009",
+   "name": "Only reels we have not seen before",
+   "type": "n8n-nodes-base.removeDuplicates",
+   "typeVersion": 2,
+   "position": [
+    1240,
+    -40
+   ],
+   "alwaysOutputData": true
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "cond-0010",
+       "leftValue": "={{ !!$json.postUrl }}",
+       "rightValue": true,
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "if-0011",
+   "name": "Any new reels?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    1460,
+    -40
+   ]
+  },
+  {
+   "parameters": {},
+   "id": "noop-0012",
+   "name": "Nothing new this week",
+   "type": "n8n-nodes-base.noOp",
+   "typeVersion": 1,
+   "position": [
+    1460,
+    260
+   ]
+  },
+  {
+   "parameters": {
+    "text": "={{ 'My brand: ' + $('Config').first().json.yourBrand + '\\n\\nCreator: ' + ($json.ownerUsername || '') + '\\nCaption: ' + ($json.caption || '') + '\\nSpoken transcript: ' + ($json.transcript || $json.onScreenText || '(this reel has no speech)') }}",
+    "attributes": {
+     "attributes": [
+      {
+       "name": "hook_type",
+       "type": "string",
+       "description": "How the reel opens. One of: question, statistic, pain-point, story, bold-claim, listicle, other.",
+       "required": false
+      },
+      {
+       "name": "content_pillar",
+       "type": "string",
+       "description": "One of: education, entertainment, behind-the-scenes, promo, story, other.",
+       "required": false
+      },
+      {
+       "name": "emotional_trigger",
+       "type": "string",
+       "description": "The feeling the opening goes for, in one or two words, for example curiosity, fear of missing out, relief.",
+       "required": false
+      },
+      {
+       "name": "cta_present",
+       "type": "boolean",
+       "description": "True if the reel asks the viewer to do something.",
+       "required": false
+      },
+      {
+       "name": "rewrite_for_my_brand",
+       "type": "string",
+       "description": "Rewrite the opening hook for the brand described under \"My brand\", in 20 words or fewer.",
+       "required": false
+      }
+     ]
+    },
+    "options": {
+     "systemPromptTemplate": "You help a social media manager build a swipe file. Study the reel given and rewrite its hook for the brand described at the top of the input. Keep the rewrite concrete and speakable."
+    }
+   },
+   "id": "ai-0013",
+   "name": "Label the hook and rewrite it",
+   "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+   "typeVersion": 1.2,
+   "position": [
+    1720,
+    -40
+   ],
+   "onError": "continueRegularOutput"
+  },
+  {
+   "parameters": {
+    "model": "openai/gpt-oss-120b",
+    "options": {}
+   },
+   "id": "groq-0014",
+   "name": "Groq chat model",
+   "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+   "typeVersion": 1,
+   "position": [
+    1720,
+    180
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "// The AI node replaces each item with its extracted attributes, so put the\n// original row back together with them. Items come back in the same order.\nconst source = $('Any new reels?').all();\nreturn $input.all().map((item, i) => {\n  const row = { ...(source[i] ? source[i].json : {}) };\n  const ai = item.json.output || {};\n  const transcript = row.transcript || '';\n  row.transcript_words = transcript.trim() ? transcript.trim().split(/\\s+/).length : 0;\n  return { json: { ...row, ...ai } };\n});"
+   },
+   "id": "code-0015",
+   "name": "Build one row per reel",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2140,
+    -40
+   ]
   },
   {
    "parameters": {
     "assignments": {
      "assignments": [
       {
-       "id": "f-status",
-       "name": "status",
-       "value": "={{ $json.status }}",
-       "type": "string"
-      },
-      {
-       "id": "f-creator",
+       "id": "c-1",
        "name": "creator",
        "value": "={{ $json.ownerUsername }}",
        "type": "string"
       },
       {
-       "id": "f-url",
+       "id": "c-2",
        "name": "reel_url",
        "value": "={{ $json.postUrl }}",
        "type": "string"
       },
       {
-       "id": "f-hook",
-       "name": "hook_first_3s",
-       "value": "={{ $json.hook3s }}",
+       "id": "c-3",
+       "name": "posted_at",
+       "value": "={{ $json.takenAt }}",
        "type": "string"
       },
       {
-       "id": "f-text",
-       "name": "transcript",
-       "value": "={{ $json.transcript }}",
+       "id": "c-4",
+       "name": "hook_type",
+       "value": "={{ $json.hook_type }}",
        "type": "string"
       },
       {
-       "id": "f-ocr",
-       "name": "on_screen_text",
-       "value": "={{ $json.onScreenText }}",
+       "id": "c-5",
+       "name": "content_pillar",
+       "value": "={{ $json.content_pillar }}",
        "type": "string"
       },
       {
-       "id": "f-lang",
-       "name": "language",
-       "value": "={{ $json.language }}",
+       "id": "c-6",
+       "name": "emotional_trigger",
+       "value": "={{ $json.emotional_trigger }}",
        "type": "string"
       },
       {
-       "id": "f-sec",
+       "id": "c-7",
+       "name": "cta_present",
+       "value": "={{ $json.cta_present }}",
+       "type": "boolean"
+      },
+      {
+       "id": "c-8",
+       "name": "rewrite_for_my_brand",
+       "value": "={{ $json.rewrite_for_my_brand }}",
+       "type": "string"
+      },
+      {
+       "id": "c-9",
+       "name": "likes",
+       "value": "={{ $json.likes }}",
+       "type": "number"
+      },
+      {
+       "id": "c-10",
+       "name": "plays",
+       "value": "={{ $json.plays }}",
+       "type": "number"
+      },
+      {
+       "id": "c-11",
        "name": "seconds",
        "value": "={{ $json.durationSeconds }}",
        "type": "number"
       },
       {
-       "id": "f-caption",
+       "id": "c-12",
+       "name": "transcript_words",
+       "value": "={{ $json.transcript_words }}",
+       "type": "number"
+      },
+      {
+       "id": "c-13",
+       "name": "language",
+       "value": "={{ $json.language }}",
+       "type": "string"
+      },
+      {
+       "id": "c-14",
+       "name": "status",
+       "value": "={{ $json.status }}",
+       "type": "string"
+      },
+      {
+       "id": "c-15",
+       "name": "charged",
+       "value": "={{ $json.charged }}",
+       "type": "boolean"
+      },
+      {
+       "id": "c-16",
        "name": "caption",
        "value": "={{ $json.caption }}",
        "type": "string"
       },
       {
-       "id": "f-charged",
-       "name": "charged",
-       "value": "={{ $json.charged }}",
-       "type": "boolean"
+       "id": "c-17",
+       "name": "transcript",
+       "value": "={{ $json.transcript }}",
+       "type": "string"
       }
      ]
     },
     "options": {}
    },
-   "id": "9b2e0001-0000-4000-8000-000000000004",
-   "name": "Tidy fields",
+   "id": "set-0016",
+   "name": "Column order",
    "type": "n8n-nodes-base.set",
    "typeVersion": 3.4,
    "position": [
-    660,
-    -80
+    2360,
+    -40
    ]
   },
   {
-   "id": "append-google-sheets",
-   "name": "Append rows to Google Sheets",
-   "type": "n8n-nodes-base.googleSheets",
-   "typeVersion": 4.7,
-   "position": [
-    880,
-    -80
-   ],
    "parameters": {
     "operation": "append",
     "documentId": {
      "__rl": true,
      "mode": "list",
      "value": "",
-     "cachedResultName": "Reel transcripts"
+     "cachedResultName": "Reels swipe file"
     },
     "sheetName": {
      "__rl": true,
@@ -274,10 +564,74 @@
      "schema": []
     },
     "options": {}
-   }
+   },
+   "id": "gs-0017",
+   "name": "Append the new rows to Google Sheets",
+   "type": "n8n-nodes-base.googleSheets",
+   "typeVersion": 4.7,
+   "position": [
+    2580,
+    -40
+   ]
+  },
+  {
+   "parameters": {
+    "aggregate": "aggregateAllItemData",
+    "destinationFieldName": "rows",
+    "options": {}
+   },
+   "id": "agg-0018",
+   "name": "Collect the new reels",
+   "type": "n8n-nodes-base.aggregate",
+   "typeVersion": 1,
+   "position": [
+    2860,
+    -40
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "// Five most-liked new reels; fall back to newest when likes are missing.\nconst rows = $input.first().json.rows || [];\nconst ranked = rows.slice().sort((a, b) => ((b.likes || 0) - (a.likes || 0)) || String(b.posted_at || '').localeCompare(String(a.posted_at || '')));\nconst top = ranked.slice(0, 5);\nconst lines = top.map((r) => `@${r.creator || '?'} (${r.hook_type || 'hook'}, ${(r.likes || 0).toLocaleString()} likes)\\nRewrite: ${r.rewrite_for_my_brand || '-'}\\n${r.reel_url || ''}`);\nconst digest = [`*${rows.length} new reel${rows.length === 1 ? '' : 's'} in your swipe file*`, ...lines].join('\\n\\n');\nreturn [{ json: { digest, new_reels: rows.length } }];"
+   },
+   "id": "code-0019",
+   "name": "Write the Telegram digest",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    3080,
+    -40
+   ]
+  },
+  {
+   "parameters": {
+    "resource": "message",
+    "operation": "sendMessage",
+    "chatId": "={{ $('Config').first().json.telegramChatId }}",
+    "text": "={{ $json.digest }}",
+    "additionalFields": {}
+   },
+   "id": "tg-0020",
+   "name": "Send the digest to Telegram",
+   "type": "n8n-nodes-base.telegram",
+   "typeVersion": 1.2,
+   "position": [
+    3300,
+    -40
+   ]
   }
  ],
  "connections": {
+  "Every Monday morning": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
   "When clicking 'Test workflow'": {
    "main": [
     [
@@ -293,18 +647,47 @@
    "main": [
     [
      {
-      "node": "Transcribe the creator's reels",
+      "node": "Creators, one per item",
       "type": "main",
       "index": 0
      }
     ]
    ]
   },
-  "Transcribe the creator's reels": {
+  "Creators, one per item": {
+   "main": [
+    [
+     {
+      "node": "Loop over creators",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Loop over creators": {
    "main": [
     [
      {
       "node": "Reel rows only (skip the run summary)",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Transcribe this creator's reels",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Transcribe this creator's reels": {
+   "main": [
+    [
+     {
+      "node": "Loop over creators",
       "type": "main",
       "index": 0
      }
@@ -315,19 +698,114 @@
    "main": [
     [
      {
-      "node": "Tidy fields",
+      "node": "Only reels we have not seen before",
       "type": "main",
       "index": 0
      }
     ]
    ]
   },
-  "Tidy fields": {
+  "Only reels we have not seen before": {
    "main": [
     [
      {
-      "node": "Append rows to Google Sheets",
+      "node": "Any new reels?",
       "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Any new reels?": {
+   "main": [
+    [
+     {
+      "node": "Label the hook and rewrite it",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Nothing new this week",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Label the hook and rewrite it": {
+   "main": [
+    [
+     {
+      "node": "Build one row per reel",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Build one row per reel": {
+   "main": [
+    [
+     {
+      "node": "Column order",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Column order": {
+   "main": [
+    [
+     {
+      "node": "Append the new rows to Google Sheets",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Append the new rows to Google Sheets": {
+   "main": [
+    [
+     {
+      "node": "Collect the new reels",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Collect the new reels": {
+   "main": [
+    [
+     {
+      "node": "Write the Telegram digest",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Write the Telegram digest": {
+   "main": [
+    [
+     {
+      "node": "Send the digest to Telegram",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Groq chat model": {
+   "ai_languageModel": [
+    [
+     {
+      "node": "Label the hook and rewrite it",
+      "type": "ai_languageModel",
       "index": 0
      }
     ]
@@ -337,5 +815,8 @@
  "settings": {
   "executionOrder": "v1"
  },
- "pinData": {}
+ "pinData": {},
+ "meta": {
+  "templateCredsSetupCompleted": true
+ }
 }

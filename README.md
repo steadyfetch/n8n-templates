@@ -2,7 +2,7 @@
 
 Free n8n workflows for ad-creative, Instagram and keyword data pipelines. No community nodes required — plain HTTP, importable into any n8n (cloud or self-hosted).
 
-**Library-ready (Sep 2026):** the five ad-transcript workflows use an n8n **Header Auth** credential for Apify (no token field), end in a **Google Sheets** node, and open with an overview sticky note plus section notes. They are being published to n8n's template library one at a time.
+**Library-ready (Sep 2026):** every workflow uses an n8n **Header Auth** credential for Apify (no token field), writes to **Google Sheets**, and opens with an overview sticky note plus section notes. Five of them are scheduled monitors: they loop over your targets, remember what they already reported with the native **Remove Duplicates** node, label each new row with an **AI Information Extractor** step (Groq by default, a drop-in swap for OpenAI or Anthropic), and send a digest to Slack, Gmail or Telegram only when there is something new.
 
 ## Facebook Ad Transcripts — scrape competitor ads → hooks, CTAs & transcripts
 
@@ -127,37 +127,39 @@ Creative Center video links expire about **6 hours** after the scraper minted th
 
 ---
 
-## LinkedIn Ad Library transcripts — one advertiser → hooks & transcripts
+## LinkedIn competitor ad monitor — weekly hooks, AI analysis & a Slack digest
 
-**What it does:** point it at one advertiser's [LinkedIn Ad Library](https://www.linkedin.com/ad-library/home) search URL (or a company URL) → scrapes their ads with [silva95gustavo/linkedin-ad-library-scraper](https://apify.com/silva95gustavo/linkedin-ad-library-scraper) → chains [steadyfetch/linkedin-ads-transcript-scraper](https://apify.com/steadyfetch/linkedin-ads-transcript-scraper) **by dataset ID** (no ad rows pass through n8n) → gives you a spreadsheet-shaped table: one row per ad with the **first-3-seconds hook**, headline, format, transcript length in words, language, seconds and the full transcript. Video ads are transcribed and image ads have their on-image copy read (both delivered rows, both charged); document, carousel, article and text-only creatives pass through uncharged with their metadata, sorted to the bottom.
+**What it does:** every Monday it walks your list of competitor [LinkedIn Ad Library](https://www.linkedin.com/ad-library/home) pages, scrapes each one with [silva95gustavo/linkedin-ad-library-scraper](https://apify.com/silva95gustavo/linkedin-ad-library-scraper), chains [steadyfetch/linkedin-ads-transcript-scraper](https://apify.com/steadyfetch/linkedin-ads-transcript-scraper) **by dataset ID** (no ad rows pass through n8n), drops every ad it has already reported with the native **Remove Duplicates** node, then has an AI classify the new ones — hook type, offer, CTA type, target persona, angle and why it works. New rows go to Google Sheets and the five longest new hooks go to Slack. A quiet week writes nothing and sends nothing.
+
+**Built for:** B2B demand-generation and ABM managers watching a fixed competitor set.
 
 **[Download the workflow JSON →](./linkedin-ad-transcripts.workflow.json)**
 
 ### 3-minute setup
 
 1. In n8n: **Workflows → Import from File** → pick `linkedin-ad-transcripts.workflow.json`.
-2. Create an **HTTP Header Auth** credential in n8n (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`, token from [Apify → Settings → Integrations](https://console.apify.com/settings/integrations)) and select it on the HTTP Request nodes.
-3. Set `adLibraryUrl` — an Ad Library search URL (`https://www.linkedin.com/ad-library/search?accountOwner=hubspot&countries=US&dateOption=last-30-days`) or a company URL (`https://www.linkedin.com/company/hubspot/`) — and `maxAds`.
-4. Click **Test workflow**. The flow polls the scraper run until it finishes, then transcribes by dataset ID.
+2. Create an **HTTP Header Auth** credential in n8n (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`, token from [Apify → Settings → Integrations](https://console.apify.com/settings/integrations)) and select it on the three HTTP Request nodes.
+3. Add a **Groq** credential on the *Groq chat model* node — or drop in an OpenAI / Anthropic chat model node in its place.
+4. Connect **Google Sheets** and **Slack**.
+5. Open **Config**: paste one Ad Library URL per line into `competitors` (`https://www.linkedin.com/ad-library/search?accountOwner=hubspot&countries=US&dateOption=last-30-days`), set `maxAdsPerCompetitor` and `slackChannel`.
+6. Click **Test workflow**, then leave the weekly Schedule Trigger on.
 
 ### What you get per ad
 
 | field | example |
 |---|---|
-| `advertiser` | HubSpot |
-| `headline` | "We are HubSpot Elite Partner" |
-| `ad_id` | 1508450294 |
-| `format` | SPONSORED_VIDEO |
-| `status` | `transcribed` or `image_text_extracted` (these are the charged rows) — document, carousel, article and text-only ads show `non_video_skipped` |
+| `advertiser` · `ad_id` · `headline` | HubSpot · 1508450294 · "We are HubSpot Elite Partner" |
+| `hook_type` *(AI)* | question / statistic / pain-point / story / bold-claim / other |
 | `hook_first_3s` | "If your revenue team is working harder than ever, but closing less," |
-| `seconds` | 43.9 |
-| `transcript_words` | 112 |
-| `language` | English |
+| `offer` · `cta_type` *(AI)* | "free CRM audit" · demo |
+| `target_persona` *(AI)* | RevOps leader |
+| `angle_summary` · `why_it_works` *(AI)* | ≤20 words · ≤25 words |
+| `seconds` · `transcript_words` · `language` | 43.9 · 112 · English |
+| `status` | `transcribed` or `image_text_extracted` (the charged rows) — document, carousel, article and text-only ads show `non_video_skipped` |
 | `charged` | `true` / `false` — text-free creatives, silent videos and blocked pages carry no result fee |
-| `transcript` | full speech-to-text, any video length |
-| `detail_url` | https://www.linkedin.com/ad-library/detail/1508450294 |
+| `transcript` · `detail_url` | full speech-to-text · https://www.linkedin.com/ad-library/detail/1508450294 |
 
-The last node appends one row per item to **Google Sheets** (connect your Google account and pick a sheet), or swap it for Airtable, Slack, or a database.
+Rows are appended to **Google Sheets**; the digest goes to **Slack**. Swap either for Airtable, Teams or email.
 
 ### Cost
 
@@ -167,40 +169,44 @@ The last node appends one row per item to **Google Sheets** (connect your Google
 
 ### Swap the scraper
 
-The scrape step is a plain HTTP call to `silva95gustavo/linkedin-ad-library-scraper` (`{ "startUrls": [{ "url": ... }], "resultsLimit": N }`). Any Ad Library scraper works — `dz_omar/linkedin-ads-scraper`, `memo23/linkedin-ads-scraper`, `ivanvs/linkedin-ad-library-scraper`, `automation-lab/linkedin-ad-library-scraper` and others: change the actor slug and JSON body in the *Scrape the Ad Library (advertiser)* node. The transcript step reads the run's dataset ID and deep-scans rows for the LinkedIn video link or ad detail link, whatever the field names. You can also skip the scraper entirely — the transcript actor searches the Ad Library itself when given advertiser names or keywords.
+The scrape step is a plain HTTP call to `silva95gustavo/linkedin-ad-library-scraper` (`{ "startUrls": [{ "url": ... }], "resultsLimit": N }`). Any Ad Library scraper works — `dz_omar/linkedin-ads-scraper`, `memo23/linkedin-ads-scraper`, `ivanvs/linkedin-ad-library-scraper`, `automation-lab/linkedin-ad-library-scraper` and others: change the actor slug and JSON body in the *Scrape this competitor's Ad Library* node. The transcript step reads the run's dataset ID and deep-scans rows for the LinkedIn video link or ad detail link, whatever the field names. You can also skip the scraper entirely — the transcript actor searches the Ad Library itself when given advertiser names or keywords.
 
 ---
 
-## Google Ads video transcripts — one advertiser/domain → hooks & transcripts
+## Google video ad tracker — weekly script breakdowns by email
 
-**What it does:** point it at one advertiser or domain in the [Google Ads Transparency Center](https://adstransparency.google.com/) → scrapes their ads with [silva95gustavo/google-ads-scraper](https://apify.com/silva95gustavo/google-ads-scraper) → chains [steadyfetch/google-ads-video-transcript-scraper](https://apify.com/steadyfetch/google-ads-video-transcript-scraper) **by dataset ID** (no ad rows pass through n8n) → gives you a spreadsheet-shaped table: one row per video ad with the **first-3-seconds hook**, creative ID, YouTube video ID, transcript length in words, language, seconds and the full transcript. Transcribed ads first, longest first.
+**What it does:** every Monday it walks your list of advertiser domains in the [Google Ads Transparency Center](https://adstransparency.google.com/), scrapes each one with [silva95gustavo/google-ads-scraper](https://apify.com/silva95gustavo/google-ads-scraper), chains [steadyfetch/google-ads-video-transcript-scraper](https://apify.com/steadyfetch/google-ads-video-transcript-scraper) **by dataset ID** (no ad rows pass through n8n), drops every creative it has already reported with the native **Remove Duplicates** node, then has an AI break the new scripts down — hook type, promise, proof element, CTA type and script structure. New rows go to Google Sheets and Gmail sends the week's breakdown, counting transcribed and silent ads separately.
+
+**Built for:** YouTube and Google Ads performance marketers tracking a set of brands.
 
 **[Download the workflow JSON →](./google-ads-video-transcripts.workflow.json)**
 
 ### 3-minute setup
 
 1. In n8n: **Workflows → Import from File** → pick `google-ads-video-transcripts.workflow.json`.
-2. Create an **HTTP Header Auth** credential in n8n (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`, token from [Apify → Settings → Integrations](https://console.apify.com/settings/integrations)) and select it on the HTTP Request nodes.
-3. Set `transparencyCenterUrl` — open the [Transparency Center](https://adstransparency.google.com/), pick an advertiser or type a domain, set region and date, and copy the address bar (e.g. `https://adstransparency.google.com/?region=US&domain=hellofresh.com&preset-date=Last+30+days`, or an `https://adstransparency.google.com/advertiser/AR…?region=US` URL) — and `maxAds`.
-4. Click **Test workflow**. The flow polls the scraper run until it finishes, then transcribes by dataset ID.
+2. Create an **HTTP Header Auth** credential in n8n (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`, token from [Apify → Settings → Integrations](https://console.apify.com/settings/integrations)) and select it on the three HTTP Request nodes.
+3. Add a **Groq** credential on the *Groq chat model* node — or drop in an OpenAI / Anthropic chat model node in its place.
+4. Connect **Google Sheets** and **Gmail**.
+5. Open **Config**: one advertiser domain per line in `advertiserDomains` (`hellofresh.com`), plus `region`, `maxAdsPerDomain` and `digestRecipient`.
+6. Click **Test workflow**, then leave the weekly Schedule Trigger on.
 
 ### What you get per ad
 
 | field | example |
 |---|---|
-| `advertiser` | HelloFresh SE |
-| `creative_id` | CR17857019577632817153 |
-| `video_id` | ONzIwHyQGJs |
-| `status` | `transcribed` (only these are charged) |
+| `advertiser` · `creative_id` | HelloFresh SE · CR17857019577632817153 |
+| `hook_type` *(AI)* | question / statistic / pain-point / story / bold-claim / demo / other |
 | `hook_first_3s` | "What if your food was smarter?" |
-| `seconds` | 15 |
-| `transcript_words` | 34 |
-| `language` | en |
+| `promise` *(AI)* | "dinner solved in 15 minutes" |
+| `proof_element` *(AI)* | testimonial / demo / stat / none |
+| `cta_type` · `script_structure` *(AI)* | shop now · problem-solution |
+| `summary` *(AI)* | ≤25 words |
+| `seconds` · `transcript_words` · `language` | 15 · 34 · en |
+| `status` | `transcribed` (only these are charged) |
 | `charged` | `true` / `false` — removed videos, music-only ads and rows with no video carry no result fee |
-| `transcript` | full speech-to-text, any video length |
-| `video_url` | https://www.youtube.com/watch?v=ONzIwHyQGJs |
+| `transcript` · `video_url` | full speech-to-text · https://www.youtube.com/watch?v=ONzIwHyQGJs |
 
-The last node appends one row per item to **Google Sheets** (connect your Google account and pick a sheet), or swap it for Airtable, Slack, or a database.
+Silent ads still reach the sheet with their status, so nothing goes missing. Rows are appended to **Google Sheets**; the digest goes out by **Gmail** — swap it for Slack or Teams.
 
 ### Cost
 
@@ -210,7 +216,7 @@ The last node appends one row per item to **Google Sheets** (connect your Google
 
 ### Swap the scraper
 
-The scrape step is a plain HTTP call to `silva95gustavo/google-ads-scraper` (`{ "startUrls": [{ "url": ... }], "resultsLimit": N }`). Any Transparency Center scraper whose rows carry the ad's YouTube link works — `lexis-solutions/google-ads-scraper`, `solidcode/ads-transparency-scraper` and others: change the actor slug and JSON body in the *Scrape the Transparency Center (advertiser)* node. The transcript step reads the run's dataset ID and deep-scans rows for the YouTube link or video ID, whatever the field names. You can also skip the scraper entirely — the transcript actor finds an advertiser's video ads itself when given advertiser names or domains.
+The scrape step is a plain HTTP call to `silva95gustavo/google-ads-scraper` (`{ "startUrls": [{ "url": ... }], "resultsLimit": N }`). Any Transparency Center scraper whose rows carry the ad's YouTube link works — `lexis-solutions/google-ads-scraper`, `solidcode/ads-transparency-scraper` and others: change the actor slug and JSON body in the *Scrape the Transparency Center* node. The transcript step reads the run's dataset ID and deep-scans rows for the YouTube link or video ID, whatever the field names. You can also skip the scraper entirely — the transcript actor finds an advertiser's video ads itself when given advertiser names or domains.
 
 Want the **image and text ads'** copy too? Pair it with [steadyfetch/google-ads-creative-text-scraper](https://apify.com/steadyfetch/google-ads-creative-text-scraper) — same advertiser input, extracts headlines, body copy and CTAs from the non-video creatives.
 
@@ -219,9 +225,11 @@ Want the **image and text ads'** copy too? Pair it with [steadyfetch/google-ads-
 
 ---
 
-## Transcribe Instagram Reels from a creator's profile to Google Sheets with Apify
+## Reels swipe file — weekly hooks, AI rewrites & a Telegram digest
 
-**What it does:** give it an Instagram handle → the actor lists that creator's most recent reels itself and transcribes them → one row per reel with the **first-3-seconds hook**, the full spoken transcript, language, duration, caption, plays and likes. No scraper to chain, no login. Reels with no speech are not charged unless you switch on on-screen text reading.
+**What it does:** every Monday it loops over the creators you follow, runs [steadyfetch/instagram-reel-transcript-scraper](https://apify.com/steadyfetch/instagram-reel-transcript-scraper) on each handle (the actor lists the newest reels itself — no scraper to chain, no login), drops every reel it has already filed with the native **Remove Duplicates** node, then has an AI label the hook and **rewrite it for your own brand** in 20 words. New rows go to Google Sheets and the five most-liked new hooks go to Telegram. A quiet week writes nothing and sends nothing.
+
+**Built for:** UGC creators and social media managers keeping a swipe file they can film from.
 
 **[Download the workflow JSON →](./instagram-reel-transcripts.workflow.json)**
 
@@ -229,20 +237,25 @@ Want the **image and text ads'** copy too? Pair it with [steadyfetch/google-ads-
 
 1. In n8n: **Workflows → Import from File** → pick `instagram-reel-transcripts.workflow.json`.
 2. Create an **HTTP Header Auth** credential (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN` — token from [Apify → Settings → Integrations](https://console.apify.com/settings/integrations)) and select it on the HTTP Request node.
-3. Connect **Google Sheets** on the last node and pick the spreadsheet and sheet.
-4. Open the **Config** node: set `instagramHandle` (`nasa`, `@nasa` or a profile URL) and `maxReels`. Optional: `includeOnScreenText` → `true` to read text off silent reels (those become charged rows).
-5. Click **Test workflow**.
+3. Add a **Groq** credential on the *Groq chat model* node — or drop in an OpenAI / Anthropic chat model node in its place.
+4. Connect **Google Sheets** and **Telegram**.
+5. Open **Config**: one handle per line in `creatorHandles` (`natgeo`, `@natgeo` or a profile URL), plus `reelsPerProfile`, `yourBrand` (one line the AI rewrites hooks for) and `telegramChatId`. Optional: `includeOnScreenText` → `true` to read text off silent reels (those become charged rows).
+6. Click **Test workflow**, then leave the weekly Schedule Trigger on.
 
 ### What you get per reel
 
 | field | example |
 |---|---|
-| `status` | `transcribed` (only these are charged) |
-| `creator` | nasa |
-| `hook_first_3s` | "I think we got my mom the perfect Mother's Day gift this year" |
-| `transcript` | full speech-to-text, any length |
-| `language` · `seconds` · `caption` | English · 61.1 · the post caption |
+| `creator` · `reel_url` · `posted_at` | natgeo · https://www.instagram.com/reel/… · 2026-09-04T17:31Z |
+| `hook_type` *(AI)* | question / statistic / pain-point / story / bold-claim / listicle / other |
+| `content_pillar` *(AI)* | education / entertainment / behind-the-scenes / promo / story / other |
+| `emotional_trigger` *(AI)* | curiosity |
+| `cta_present` *(AI)* | `true` / `false` |
+| `rewrite_for_my_brand` *(AI)* | your hook, rewritten in ≤20 words |
+| `likes` · `plays` · `seconds` · `transcript_words` | 18,985 · 299,322 · 69.6 · 146 |
+| `language` · `status` · `caption` | English · `transcribed` (only these are charged) · the post caption |
 | `charged` | `true` / `false` — silent reels and dead links are **$0** |
+| `transcript` | full speech-to-text, any length |
 
 ### Cost
 
@@ -250,9 +263,13 @@ Want the **image and text ads'** copy too? Pair it with [steadyfetch/google-ads-
 
 ---
 
-## Get Google search volume and CPC for a keyword list to Google Sheets with Apify
+## Keyword opportunity scorer — a form in, scored and clustered keywords out
 
-**What it does:** paste keywords one per line → one row per keyword with Google Ads Keyword Planner figures through a licensed provider: **average monthly searches**, competition, top-of-page bid range, 12-month trend direction, and **CPC wherever Google publishes one**. No modelled numbers, no invented difficulty score; keywords Google has no data for come back uncharged. Switch `mode` to `ideas` to expand each keyword into new keyword ideas with the same metrics.
+**What it does:** submit a keyword list through the built-in **n8n Form Trigger** (or run it manually with the demo list) → [steadyfetch/keyword-search-volume-scraper](https://apify.com/steadyfetch/keyword-search-volume-scraper) returns real Google Ads Keyword Planner figures through a licensed provider — **average monthly searches**, competition, top-of-page bid range, 12-month trend and **CPC wherever Google publishes one** — then an AI labels each keyword's **search intent**, a topic **cluster** and the **page type** worth building. A Code node scores every keyword `volume × (1 − competition/100) ÷ CPC`, sorts by it, and **Remove Duplicates** skips anything already scored for that country in an earlier run. New rows go to Google Sheets; the ten best opportunities go to Slack.
+
+No modelled numbers, no invented difficulty score; keywords Google has no data for come back uncharged. Switch `mode` to `ideas` to expand each keyword into new keyword ideas with the same metrics.
+
+**Built for:** SEO and SEM specialists who want the list triaged before they read it.
 
 **[Download the workflow JSON →](./keyword-search-volume.workflow.json)**
 
@@ -260,19 +277,26 @@ Want the **image and text ads'** copy too? Pair it with [steadyfetch/google-ads-
 
 1. In n8n: **Workflows → Import from File** → pick `keyword-search-volume.workflow.json`.
 2. Create an **HTTP Header Auth** credential (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN` — token from [Apify → Settings → Integrations](https://console.apify.com/settings/integrations)) and select it on the HTTP Request node.
-3. Connect **Google Sheets** on the last node and pick the spreadsheet and sheet.
-4. Open the **Config** node: paste your list into `keywordsText` (one per line or comma-separated); set `country` (`US`, `GB`, `DE`…) and `language` (`en`, `de`…).
-5. Click **Test workflow**. The IF node drops the run's summary row so only keyword rows reach your sheet.
+3. Add a **Groq** credential on the *Groq chat model* node — or drop in an OpenAI / Anthropic chat model node in its place.
+4. Connect **Google Sheets** and **Slack**.
+5. Open the **On form submission** node and copy its form URL — that is the plug-and-play front door (keywords, country, language). The **Config** node holds the demo list, `mode` and `slackChannel` for manual runs.
+6. Click **Test workflow**, or open the form and paste a list.
 
 ### What you get per keyword
 
 | field | notes |
 |---|---|
+| `rank` · `opportunity_score` | position in the sorted list and the score behind it |
+| `intent` *(AI)* | informational / commercial / transactional / navigational |
+| `cluster` *(AI)* | a two or three word topic label |
+| `suggested_page_type` *(AI)* | blog / comparison / product / landing / tool |
 | `avg_monthly_searches` | Google's average; `0` means fewer than Google reports |
 | `cpc_usd` | average CPC, `null` where Google publishes none |
-| `competition` · `low_top_of_page_bid_usd` · `high_top_of_page_bid_usd` | LOW / MEDIUM / HIGH and the bid range |
+| `competition` · `competition_index` · `low_top_of_page_bid_usd` · `high_top_of_page_bid_usd` | LOW / MEDIUM / HIGH, 0–100, and the bid range |
 | `trend` · `data_as_of` | `rising` / `flat` / `falling` and the last month Google reported |
 | `charged` | `true` / `false` — no-data keywords are **$0** |
+
+The score favours high volume, low competition and cheap clicks. Reweight it in the *Score the opportunity* Code node.
 
 ### Cost
 
@@ -280,9 +304,11 @@ Want the **image and text ads'** copy too? Pair it with [steadyfetch/google-ads-
 
 ---
 
-## Pull the latest posts and reels from Instagram profiles to Google Sheets with Apify
+## Instagram competitor watch — daily posts, a viral flag & a Slack alert
 
-**What it does:** handles or profile URLs in → one row per post or reel, **newest by date** (pinned posts are flagged, not promoted to the top), with caption, hashtags, like and comment counts, plays and duration for videos, and the media URL. No login, no cookies. Your limit is exact: 30 means 30.
+**What it does:** every morning it loops over the competitor accounts you name, runs [steadyfetch/instagram-profile-posts](https://apify.com/steadyfetch/instagram-profile-posts) on each (no login, no cookies; your limit is exact, 30 means 30), drops every post it has already reported with the native **Remove Duplicates** node, then works out which of the new ones **broke out**: engagement (likes + comments) is compared with the median for that same account, so a big account and a small one are judged fairly. An AI reads each caption for theme, tone, format and CTA. Every new post is appended to Google Sheets — but Slack is pinged **only** when something went viral.
+
+**Built for:** social media managers who want to hear about the breakouts, not about every post.
 
 **[Download the workflow JSON →](./instagram-profile-posts.workflow.json)**
 
@@ -290,19 +316,26 @@ Want the **image and text ads'** copy too? Pair it with [steadyfetch/google-ads-
 
 1. In n8n: **Workflows → Import from File** → pick `instagram-profile-posts.workflow.json`.
 2. Create an **HTTP Header Auth** credential (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN` — token from [Apify → Settings → Integrations](https://console.apify.com/settings/integrations)) and select it on the HTTP Request node.
-3. Connect **Google Sheets** on the last node and pick the spreadsheet and sheet.
-4. Open the **Config** node: set `profiles` (comma-separated handles or URLs), `postsPerProfile`, and optionally `mediaType` (`any`, `image`, `video`, `carousel`).
-5. Click **Test workflow**. The IF node keeps post rows only (profile and summary rows are dropped).
+3. Add a **Groq** credential on the *Groq chat model* node — or drop in an OpenAI / Anthropic chat model node in its place.
+4. Connect **Google Sheets** and **Slack**.
+5. Open **Config**: one handle per line in `competitorHandles`, plus `postsPerProfile`, `viralMultiplier` (2 = twice that account's median) and `slackChannel`.
+6. Click **Test workflow**, then leave the daily Schedule Trigger on.
 
 ### What you get per post
 
 | field | example |
 |---|---|
-| `profile` · `post_url` · `type` | nasa · https://www.instagram.com/p/DchLnq8E21N/ · carousel |
-| `posted_at` · `caption` | 2026-08-26T21:30:18Z · "How it started 👉 how it's going…" |
-| `likes` · `comments` · `plays` · `video_seconds` | 19,990 · 140 · — · — |
-| `is_pinned` · `media_url` | false · the image or video URL |
+| `account` · `posted_by` · `post_url` | natgeo · natgeo · https://www.instagram.com/p/DchLnq8E21N/ |
+| `posted_at` · `type` | 2026-08-26T21:30:18Z · carousel |
+| `theme` · `tone` *(AI)* | wildlife conservation · factual |
+| `cta_present` · `format_guess` *(AI)* | `false` · carousel |
+| `summary` *(AI)* | ≤20 words |
+| `likes` · `comments` · `plays` | 19,990 · 140 · — |
+| `engagement` · `account_median_engagement` · `is_viral` | 20,130 · 8,400 · `true` |
+| `caption` | "How it started 👉 how it's going…" |
 | `charged` | `true` / `false` — posts we could not deliver are **$0** |
+
+Raise `viralMultiplier` to 3 for a quieter alert.
 
 ### Cost
 
@@ -313,4 +346,8 @@ Want the **image and text ads'** copy too? Pair it with [steadyfetch/google-ads-
 
 ### Validated
 
-All eight workflows import cleanly into n8n via `n8n import:workflow` (the five ad-transcript workflows checked against n8n 2.36.9 on 2026-09-01; the three Instagram/keyword workflows re-checked after their library pass on 2026-09-02, see the commit for the exact image tag). Every workflow uses an HTTP Header Auth credential for the Apify token (no token field in the Config node) and ends in a Google Sheets append node.
+All eight workflows are gated on the latest n8n in Docker — **2.37.7** — not just parsed. Every sticky note is measured on a rendered canvas at 100% zoom (clipped text is silent: the sticky wrapper is `overflow: hidden`), and every workflow is executed end to end against the live Apify API from the editor's own run endpoint, with one HTTP Header Auth credential and the Google Sheets / Slack / Gmail / Telegram nodes disabled.
+
+The five scheduled monitors are run **twice**: pass 1 appends the rows and sends the digest, pass 2 finds nothing new — the native Remove Duplicates node drops every row it already reported and the workflow ends on its "nothing new" branch. That is the whole point of a scheduled template, so it is proven rather than assumed.
+
+Every workflow uses an HTTP Header Auth credential for the Apify token (no token field anywhere) and writes to a Google Sheets append node.

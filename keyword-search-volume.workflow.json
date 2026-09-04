@@ -1,21 +1,21 @@
 {
- "id": "KeywordVolumeCpc01",
- "name": "Get Google search volume and CPC for a keyword list to Google Sheets with Apify",
+ "id": "SfKeywordScoring1",
+ "name": "Score and cluster a keyword list by search intent with AI using Google Ads volume and CPC in Google Sheets",
  "active": false,
  "nodes": [
   {
-   "id": "sticky-main",
+   "id": "sticky-overview",
    "name": "Overview",
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    -980,
-    -300
+    -1060,
+    -320
    ],
    "parameters": {
     "width": 700,
-    "height": 1140,
-    "content": "# Get Google search volume and CPC for a keyword list to Google Sheets with Apify\n\nPaste a keyword list and get Google Ads Keyword Planner numbers back as a spreadsheet: average monthly searches, competition, the top-of-page bid range, the 12-month trend direction and CPC wherever Google publishes one, one row per keyword.\n\n### Who it's for\nSEO and PPC people who need real Keyword Planner figures for a list without a Google Ads account, and without modelled or invented numbers.\n\n### How it works\n1. A Set node holds the keyword list (one per line or comma-separated), the country, the language and the mode.\n2. An HTTP Request runs the Keyword Search Volume Scraper on Apify, which returns the licensed Keyword Planner metrics. Keywords Google has no data for come back uncharged.\n3. An If node drops the run's summary row, a Set node tidies the columns and a Google Sheets node appends one row per keyword.\n\n### Setup\n1. Create an HTTP Header Auth credential (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`) and select it on the HTTP Request node.\n2. Connect Google Sheets and pick the spreadsheet and sheet.\n3. Open the Config node, paste your keywords, set the country (`US`, `GB`, `DE`) and language (`en`, `de`).\n4. Run the workflow.\n\n### Requirements\nAn Apify account and a Google account. A 50-keyword test is about $0.40 on the free plan; from 16 September 2026 a run that buys fresh data also pays one $0.19 fresh-lookup fee, so the same test is about $0.59, and a run answered from the actor's 30-day cache pays none. If you set a Maximum cost per run, make it at least $0.25 from that date.\n\n### Customization tips\nSet `mode` to `ideas` to expand every keyword into new keyword ideas with the same metrics, or `both`. Feed the list from a Google Sheet instead of the Config node. Add a Schedule Trigger to refresh a keyword set monthly.\n"
+    "height": 1080,
+    "content": "# Score and cluster a keyword list by search intent with AI using Google Ads volume and CPC in Google Sheets\n\nPaste a keyword list into a built-in n8n form and get it back triaged: real Google Ads Keyword Planner volume, competition and CPC, an AI intent label, a topic cluster and the page type to build, ranked by opportunity score in a Google Sheet, with the ten best posted to Slack.\n\n### Who it's for\nSEO and SEM specialists who need Keyword Planner figures without a Google Ads account and want the list triaged before they read it.\n\n### How it works\n1. Submit the built-in n8n form with your keywords, country and language, or run it manually with the demo list.\n2. One HTTP Request runs the Keyword Search Volume Scraper on Apify for the licensed metrics. Keywords Google has no data for are uncharged.\n3. An Information Extractor labels each keyword with its intent, a short topic cluster and the page type worth building.\n4. A Code node scores it: `volume x (1 - competition/100) / CPC`, favouring high volume, low competition and cheap clicks, then sorts by that score.\n5. Remove Duplicates drops keywords already scored for that country, Sheets appends the rest, and the ten best go to Slack.\n\n### Setup\n1. Create an HTTP Header Auth credential (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`) and select it on the HTTP Request node.\n2. Add a Groq credential on the chat model node - a drop-in swap for OpenAI or Anthropic.\n3. Connect Google Sheets and Slack, then open the form URL and paste a list.\n\n### Requirements\nAn Apify account, a chat model account, Google Sheets and Slack. Keywords are charged only when Google returns metrics.\n\n### Customization\nReweight the scoring formula in the Code node. Set `mode` to `ideas` in Config to expand every seed into new ideas."
    }
   },
   {
@@ -24,14 +24,14 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    -260,
-    -160
+    -320,
+    -280
    ],
    "parameters": {
     "color": 7,
-    "width": 420,
-    "height": 300,
-    "content": "## 1. Configure\nKeywords, country, language and mode live in one Set node."
+    "width": 700,
+    "height": 600,
+    "content": "## 1. Ask for the keywords\nA built-in n8n form takes the list, country and language; the manual trigger uses the demo list in Config."
    }
   },
   {
@@ -40,14 +40,14 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    180,
-    -160
+    400,
+    -280
    ],
    "parameters": {
     "color": 7,
-    "width": 640,
-    "height": 300,
-    "content": "## 2. Look up\nOne Apify call returns Keyword Planner metrics; the If node keeps keyword rows only."
+    "width": 500,
+    "height": 460,
+    "content": "## 2. Look up\nOne Apify call returns Google Ads Keyword Planner volume, competition and CPC."
    }
   },
   {
@@ -56,25 +56,126 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    840,
-    -160
+    940,
+    -280
    ],
    "parameters": {
     "color": 7,
-    "width": 460,
-    "height": 300,
-    "content": "## 3. Save\nTidy the columns and append one row per keyword to Google Sheets."
+    "width": 400,
+    "height": 700,
+    "content": "## 3. Read the intent\nThe model labels intent, topic cluster and page type. Swap Groq for OpenAI or Anthropic."
    }
   },
   {
+   "id": "sticky-sec-4",
+   "name": "Section 4",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    1380,
+    -280
+   ],
+   "parameters": {
+    "color": 7,
+    "width": 520,
+    "height": 460,
+    "content": "## 4. Score and sort\nOpportunity score = volume x (1 - competition/100) / CPC. High volume, low competition, cheap clicks win."
+   }
+  },
+  {
+   "id": "sticky-sec-5",
+   "name": "Section 5",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    1940,
+    -280
+   ],
+   "parameters": {
+    "color": 7,
+    "width": 520,
+    "height": 700,
+    "content": "## 5. Keep only what is new\nRemove Duplicates remembers every keyword and country from previous runs."
+   }
+  },
+  {
+   "id": "sticky-sec-6",
+   "name": "Section 6",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    2500,
+    -280
+   ],
+   "parameters": {
+    "color": 7,
+    "width": 480,
+    "height": 400,
+    "content": "## 6. Save\nOne scored row per keyword is appended to your sheet."
+   }
+  },
+  {
+   "id": "sticky-sec-7",
+   "name": "Section 7",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    3020,
+    -280
+   ],
+   "parameters": {
+    "color": 7,
+    "width": 700,
+    "height": 400,
+    "content": "## 7. Alert\nThe ten best opportunities go to Slack as one message."
+   }
+  },
+  {
+   "parameters": {
+    "formTitle": "Keyword opportunity check",
+    "formDescription": "Paste a keyword list and get Google Ads volume, CPC and an AI intent label back.",
+    "formFields": {
+     "values": [
+      {
+       "fieldLabel": "Keywords (one per line)",
+       "fieldType": "textarea",
+       "requiredField": true
+      },
+      {
+       "fieldLabel": "Country code",
+       "fieldType": "text",
+       "placeholder": "US",
+       "requiredField": false
+      },
+      {
+       "fieldLabel": "Language code",
+       "fieldType": "text",
+       "placeholder": "en",
+       "requiredField": false
+      }
+     ]
+    },
+    "options": {}
+   },
+   "id": "form-0001",
+   "name": "On form submission",
+   "type": "n8n-nodes-base.formTrigger",
+   "typeVersion": 2.2,
+   "position": [
+    -260,
+    -140
+   ],
+   "webhookId": "a2f5c0d8-6b41-4d6a-9d4c-3e5f7a1b2c3d"
+  },
+  {
    "parameters": {},
-   "id": "9b2e0002-0000-4000-8000-000000000001",
+   "id": "man-0002",
    "name": "When clicking 'Test workflow'",
    "type": "n8n-nodes-base.manualTrigger",
    "typeVersion": 1,
    "position": [
-    -220,
-    0
+    -260,
+    80
    ]
   },
   {
@@ -84,19 +185,19 @@
       {
        "id": "cfg-kw",
        "name": "keywordsText",
-       "value": "crm software\nemail marketing tool\nproject management app\nbest accounting software",
+       "value": "={{ $json['Keywords (one per line)'] || 'crm software\\nemail marketing tool\\nproject management app\\nbest accounting software\\nhelpdesk software for startups' }}",
        "type": "string"
       },
       {
        "id": "cfg-country",
        "name": "country",
-       "value": "US",
+       "value": "={{ $json['Country code'] || 'US' }}",
        "type": "string"
       },
       {
        "id": "cfg-lang",
        "name": "language",
-       "value": "en",
+       "value": "={{ $json['Language code'] || 'en' }}",
        "type": "string"
       },
       {
@@ -104,41 +205,50 @@
        "name": "mode",
        "value": "metrics-only",
        "type": "string"
+      },
+      {
+       "id": "cfg-slack",
+       "name": "slackChannel",
+       "value": "seo",
+       "type": "string"
       }
      ]
     },
     "options": {}
    },
-   "id": "9b2e0002-0000-4000-8000-000000000002",
+   "id": "set-0003",
    "name": "Config",
    "type": "n8n-nodes-base.set",
    "typeVersion": 3.4,
    "position": [
-    0,
-    0
+    -20,
+    -40
    ]
   },
   {
    "parameters": {
-    "method": "POST",
-    "url": "=https://api.apify.com/v2/acts/steadyfetch~keyword-search-volume-scraper/run-sync-get-dataset-items",
-    "sendBody": true,
-    "specifyBody": "json",
-    "jsonBody": "={{ JSON.stringify({ keywords: String($('Config').first().json.keywordsText).split(/\\r?\\n|,/).map(k => k.trim()).filter(Boolean), country: $('Config').first().json.country, language: $('Config').first().json.language, mode: $('Config').first().json.mode }) }}",
     "options": {
      "timeout": 300000
     },
     "authentication": "genericCredentialType",
-    "genericAuthType": "httpHeaderAuth"
+    "genericAuthType": "httpHeaderAuth",
+    "method": "POST",
+    "url": "=https://api.apify.com/v2/acts/steadyfetch~keyword-search-volume-scraper/run-sync-get-dataset-items",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ keywords: String($('Config').first().json.keywordsText).split(/\\r?\\n|,/).map((k) => k.trim()).filter(Boolean), country: $('Config').first().json.country, language: $('Config').first().json.language, mode: $('Config').first().json.mode }) }}"
    },
-   "id": "9b2e0002-0000-4000-8000-000000000003",
+   "id": "http-0004",
    "name": "Look up volume and CPC",
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    220,
-    0
-   ]
+    480,
+    -40
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000
   },
   {
    "parameters": {
@@ -150,7 +260,7 @@
      },
      "conditions": [
       {
-       "id": "9b2e0002-0000-4000-8000-000000000094",
+       "id": "cond-0005",
        "leftValue": "={{ typeof $json.keyword === 'string' && $json.keyword.length > 0 }}",
        "rightValue": true,
        "operator": {
@@ -164,13 +274,162 @@
     },
     "options": {}
    },
-   "id": "9b2e0002-0000-4000-8000-000000000004",
+   "id": "if-0006",
    "name": "Keyword rows only (skip the run summary)",
    "type": "n8n-nodes-base.if",
    "typeVersion": 2,
    "position": [
-    440,
-    0
+    700,
+    -40
+   ],
+   "alwaysOutputData": true
+  },
+  {
+   "parameters": {
+    "text": "={{ 'Keyword: ' + $json.keyword + '\\nCountry: ' + $('Config').first().json.country + '\\nMonthly searches: ' + ($json.avgMonthlySearches ?? 'unknown') + '\\nCompetition: ' + ($json.competition || 'unknown') }}",
+    "attributes": {
+     "attributes": [
+      {
+       "name": "intent",
+       "type": "string",
+       "description": "The search intent. One of: informational, commercial, transactional, navigational.",
+       "required": false
+      },
+      {
+       "name": "cluster",
+       "type": "string",
+       "description": "A two or three word topic label that groups this keyword with similar ones.",
+       "required": false
+      },
+      {
+       "name": "suggested_page_type",
+       "type": "string",
+       "description": "The page worth building for it. One of: blog, comparison, product, landing, tool.",
+       "required": false
+      }
+     ]
+    },
+    "options": {
+     "systemPromptTemplate": "You triage keyword lists for an SEO specialist. Label the search intent behind the keyword, give it a short topic cluster name and say which page type would rank for it."
+    }
+   },
+   "id": "ai-0007",
+   "name": "Read the search intent",
+   "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+   "typeVersion": 1.2,
+   "position": [
+    1020,
+    -40
+   ],
+   "onError": "continueRegularOutput"
+  },
+  {
+   "parameters": {
+    "model": "openai/gpt-oss-120b",
+    "options": {}
+   },
+   "id": "groq-0008",
+   "name": "Groq chat model",
+   "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+   "typeVersion": 1,
+   "position": [
+    980,
+    180
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "// Opportunity score favours volume, low competition and cheap clicks.\nconst source = $('Keyword rows only (skip the run summary)').all();\nconst rows = $input.all().map((item, i) => {\n  const row = { ...(source[i] ? source[i].json : {}) };\n  const ai = item.json.output || {};\n  const volume = Number(row.avgMonthlySearches) || 0;\n  const competition = Number(row.competitionIndex) || 0;\n  const cpc = Number(row.cpcUsd) || 0;\n  const score = Math.round((volume * (1 - competition / 100)) / Math.max(cpc, 0.05) * 10) / 10;\n  return { ...row, ...ai, opportunity_score: score };\n});\nrows.sort((a, b) => b.opportunity_score - a.opportunity_score);\nreturn rows.map((row, i) => ({ json: { ...row, rank: i + 1 } }));"
+   },
+   "id": "code-0009",
+   "name": "Score the opportunity",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1460,
+    -40
+   ]
+  },
+  {
+   "parameters": {
+    "sortFieldsUi": {
+     "sortField": [
+      {
+       "fieldName": "opportunity_score",
+       "order": "descending"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "id": "sort-0010",
+   "name": "Best opportunities first",
+   "type": "n8n-nodes-base.sort",
+   "typeVersion": 1,
+   "position": [
+    1680,
+    -40
+   ]
+  },
+  {
+   "parameters": {
+    "operation": "removeItemsSeenInPreviousExecutions",
+    "logic": "removeItemsWithAlreadySeenKeyValues",
+    "dedupeValue": "={{ $json.keyword + '|' + $('Config').first().json.country }}",
+    "options": {}
+   },
+   "id": "dedup-0011",
+   "name": "Only keywords we have not scored before",
+   "type": "n8n-nodes-base.removeDuplicates",
+   "typeVersion": 2,
+   "position": [
+    2020,
+    -40
+   ],
+   "alwaysOutputData": true
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "cond-0012",
+       "leftValue": "={{ !!$json.keyword }}",
+       "rightValue": true,
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "if-0013",
+   "name": "Any new keywords?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    2240,
+    -40
+   ]
+  },
+  {
+   "parameters": {},
+   "id": "noop-0014",
+   "name": "Nothing new to add",
+   "type": "n8n-nodes-base.noOp",
+   "typeVersion": 1,
+   "position": [
+    2240,
+    240
    ]
   },
   {
@@ -178,61 +437,97 @@
     "assignments": {
      "assignments": [
       {
-       "id": "f-kw",
+       "id": "c-1",
+       "name": "rank",
+       "value": "={{ $json.rank }}",
+       "type": "number"
+      },
+      {
+       "id": "c-2",
        "name": "keyword",
        "value": "={{ $json.keyword }}",
        "type": "string"
       },
       {
-       "id": "f-seed",
-       "name": "seed",
-       "value": "={{ $json.seed }}",
+       "id": "c-3",
+       "name": "country",
+       "value": "={{ $('Config').first().json.country }}",
        "type": "string"
       },
       {
-       "id": "f-vol",
+       "id": "c-4",
+       "name": "intent",
+       "value": "={{ $json.intent }}",
+       "type": "string"
+      },
+      {
+       "id": "c-5",
+       "name": "cluster",
+       "value": "={{ $json.cluster }}",
+       "type": "string"
+      },
+      {
+       "id": "c-6",
+       "name": "suggested_page_type",
+       "value": "={{ $json.suggested_page_type }}",
+       "type": "string"
+      },
+      {
+       "id": "c-7",
+       "name": "opportunity_score",
+       "value": "={{ $json.opportunity_score }}",
+       "type": "number"
+      },
+      {
+       "id": "c-8",
        "name": "avg_monthly_searches",
        "value": "={{ $json.avgMonthlySearches }}",
        "type": "number"
       },
       {
-       "id": "f-cpc",
-       "name": "cpc_usd",
-       "value": "={{ $json.cpcUsd }}",
-       "type": "number"
-      },
-      {
-       "id": "f-comp",
+       "id": "c-9",
        "name": "competition",
        "value": "={{ $json.competition }}",
        "type": "string"
       },
       {
-       "id": "f-low",
+       "id": "c-10",
+       "name": "competition_index",
+       "value": "={{ $json.competitionIndex }}",
+       "type": "number"
+      },
+      {
+       "id": "c-11",
+       "name": "cpc_usd",
+       "value": "={{ $json.cpcUsd }}",
+       "type": "number"
+      },
+      {
+       "id": "c-12",
        "name": "low_top_of_page_bid_usd",
        "value": "={{ $json.lowTopOfPageBidUsd }}",
        "type": "number"
       },
       {
-       "id": "f-high",
+       "id": "c-13",
        "name": "high_top_of_page_bid_usd",
        "value": "={{ $json.highTopOfPageBidUsd }}",
        "type": "number"
       },
       {
-       "id": "f-trend",
+       "id": "c-14",
        "name": "trend",
        "value": "={{ $json.trendDirection }}",
        "type": "string"
       },
       {
-       "id": "f-asof",
+       "id": "c-15",
        "name": "data_as_of",
        "value": "={{ $json.dataAsOf }}",
        "type": "string"
       },
       {
-       "id": "f-charged",
+       "id": "c-16",
        "name": "charged",
        "value": "={{ $json.charged }}",
        "type": "boolean"
@@ -241,31 +536,23 @@
     },
     "options": {}
    },
-   "id": "9b2e0002-0000-4000-8000-000000000005",
-   "name": "Tidy fields",
+   "id": "set-0015",
+   "name": "Column order",
    "type": "n8n-nodes-base.set",
    "typeVersion": 3.4,
    "position": [
-    660,
-    -80
+    2560,
+    -40
    ]
   },
   {
-   "id": "append-google-sheets",
-   "name": "Append rows to Google Sheets",
-   "type": "n8n-nodes-base.googleSheets",
-   "typeVersion": 4.7,
-   "position": [
-    880,
-    -80
-   ],
    "parameters": {
     "operation": "append",
     "documentId": {
      "__rl": true,
      "mode": "list",
      "value": "",
-     "cachedResultName": "Keyword volume"
+     "cachedResultName": "Keyword opportunities"
     },
     "sheetName": {
      "__rl": true,
@@ -280,10 +567,79 @@
      "schema": []
     },
     "options": {}
-   }
+   },
+   "id": "gs-0016",
+   "name": "Append the new rows to Google Sheets",
+   "type": "n8n-nodes-base.googleSheets",
+   "typeVersion": 4.7,
+   "position": [
+    2780,
+    -40
+   ]
+  },
+  {
+   "parameters": {
+    "aggregate": "aggregateAllItemData",
+    "destinationFieldName": "rows",
+    "options": {}
+   },
+   "id": "agg-0017",
+   "name": "Collect the scored keywords",
+   "type": "n8n-nodes-base.aggregate",
+   "typeVersion": 1,
+   "position": [
+    3060,
+    -40
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "// The ten best opportunities, one line each.\nconst rows = $input.first().json.rows || [];\nconst top = rows.slice(0, 10);\nconst lines = top.map((r) => `${r.rank}. ${r.keyword} — ${(r.avg_monthly_searches || 0).toLocaleString()}/mo · $${Number(r.cpc_usd || 0).toFixed(2)} CPC · ${r.intent || '?'} · ${r.cluster || '?'}`);\nconst digest = [`*${rows.length} new keyword${rows.length === 1 ? '' : 's'} scored*`, '', ...lines].join('\\n');\nreturn [{ json: { digest, new_keywords: rows.length } }];"
+   },
+   "id": "code-0018",
+   "name": "Write the Slack digest",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    3280,
+    -40
+   ]
+  },
+  {
+   "parameters": {
+    "resource": "message",
+    "operation": "post",
+    "select": "channel",
+    "channelId": {
+     "__rl": true,
+     "mode": "name",
+     "value": "=#{{ $('Config').first().json.slackChannel }}"
+    },
+    "text": "={{ $json.digest }}",
+    "otherOptions": {}
+   },
+   "id": "slack-0019",
+   "name": "Post the top opportunities to Slack",
+   "type": "n8n-nodes-base.slack",
+   "typeVersion": 2.7,
+   "position": [
+    3500,
+    -40
+   ]
   }
  ],
  "connections": {
+  "On form submission": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
   "When clicking 'Test workflow'": {
    "main": [
     [
@@ -321,19 +677,125 @@
    "main": [
     [
      {
-      "node": "Tidy fields",
+      "node": "Read the search intent",
       "type": "main",
       "index": 0
      }
     ]
    ]
   },
-  "Tidy fields": {
+  "Read the search intent": {
    "main": [
     [
      {
-      "node": "Append rows to Google Sheets",
+      "node": "Score the opportunity",
       "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Score the opportunity": {
+   "main": [
+    [
+     {
+      "node": "Best opportunities first",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Best opportunities first": {
+   "main": [
+    [
+     {
+      "node": "Only keywords we have not scored before",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Only keywords we have not scored before": {
+   "main": [
+    [
+     {
+      "node": "Any new keywords?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Any new keywords?": {
+   "main": [
+    [
+     {
+      "node": "Column order",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Nothing new to add",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Column order": {
+   "main": [
+    [
+     {
+      "node": "Append the new rows to Google Sheets",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Append the new rows to Google Sheets": {
+   "main": [
+    [
+     {
+      "node": "Collect the scored keywords",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Collect the scored keywords": {
+   "main": [
+    [
+     {
+      "node": "Write the Slack digest",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Write the Slack digest": {
+   "main": [
+    [
+     {
+      "node": "Post the top opportunities to Slack",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Groq chat model": {
+   "ai_languageModel": [
+    [
+     {
+      "node": "Read the search intent",
+      "type": "ai_languageModel",
       "index": 0
      }
     ]
@@ -343,5 +805,8 @@
  "settings": {
   "executionOrder": "v1"
  },
- "pinData": {}
+ "pinData": {},
+ "meta": {
+  "templateCredsSetupCompleted": true
+ }
 }

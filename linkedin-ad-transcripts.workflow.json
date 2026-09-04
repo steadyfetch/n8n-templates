@@ -1,21 +1,21 @@
 {
- "id": "LinkedInAdTranscripts01",
- "name": "Transcribe LinkedIn video ads from the Ad Library to Google Sheets with Apify",
+ "id": "SfLinkedInAdWatch1",
+ "name": "Monitor competitors' LinkedIn video ads weekly and send AI hook analysis to Google Sheets and Slack",
  "active": false,
  "nodes": [
   {
-   "id": "sticky-main",
+   "id": "sticky-overview",
    "name": "Overview",
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    -1200,
-    -300
+    -1060,
+    -320
    ],
    "parameters": {
     "width": 700,
-    "height": 1020,
-    "content": "# Transcribe LinkedIn video ads from the Ad Library to Google Sheets with Apify\n\nTake one advertiser's LinkedIn Ad Library page and get their video ads as text: headline, format, the first-3-seconds hook, full transcript, length and language, one row per ad.\n\n### Who it's for\nB2B marketers and agencies who study competitor LinkedIn campaigns and want the spoken message, not just the thumbnail.\n\n### How it works\n1. A Set node holds the advertiser's Ad Library URL and the number of ads to fetch.\n2. An HTTP Request starts the LinkedIn Ad Library scraper on Apify, then an If node and a polling request wait until the run finishes.\n3. The run's dataset ID is handed to the LinkedIn Ads Transcript Scraper on Apify, so no ad rows pass through n8n. Each video ad is transcribed and the hook extracted. Videos with no speech come back as uncharged misses.\n4. A Code node shapes one row per ad, a Set node tidies the columns and a Google Sheets node appends them.\n\n### Setup\n1. Create an HTTP Header Auth credential (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`) and select it on the three HTTP Request nodes.\n2. Connect Google Sheets and pick the spreadsheet and sheet.\n3. Open the Config node, set the advertiser's Ad Library URL and how many ads to process.\n4. Run the workflow.\n\n### Requirements\nAn Apify account and a Google account.\n\n### Customization tips\nRun several advertisers by looping over a list of URLs. Keep the detail_url column to jump back to the original ad. Add a Schedule Trigger to watch an account monthly.\n"
+    "height": 1040,
+    "content": "# Monitor competitors' LinkedIn video ads weekly and send AI hook analysis to Google Sheets and Slack\n\nEvery Monday this workflow transcribes your competitors' new LinkedIn video ads, has an AI classify the hook and offer, appends the new ones to a Google Sheet and posts a digest to Slack.\n\n### Who it's for\nB2B demand generation and ABM managers who watch a fixed list of competitors and want the message, not the thumbnail.\n\n### How it works\n1. A Schedule Trigger fires weekly. One Config node holds the Ad Library URLs, the ads per competitor and the Slack channel.\n2. It loops over the competitors: each Ad Library page is scraped on Apify, then that run's dataset goes straight to the LinkedIn Ads Transcript Scraper.\n3. Remove Duplicates drops every ad seen in an earlier execution, so a weekly run only reports new creatives. Nothing new means nothing is written and nothing is sent.\n4. An Information Extractor classifies each new ad: hook type, offer, CTA, persona, angle and why it works.\n5. Google Sheets appends a row per ad; Slack gets the five longest new hooks.\n\n### Setup\n1. Create an HTTP Header Auth credential (name `Authorization`, value `Bearer YOUR_APIFY_TOKEN`) and select it on the three HTTP Request nodes.\n2. Add a Groq credential on the chat model node - a drop-in swap for OpenAI or Anthropic.\n3. Connect Google Sheets and Slack, then paste your competitors' Ad Library URLs into Config.\n\n### Requirements\nAn Apify account, a chat model account, Google Sheets and Slack. Transcription is charged only when text is delivered; ads with no speech are uncharged.\n\n### Customization\nSwap in any Ad Library scraper - the transcript step reads the run by dataset ID. Change the digest ranking in the Code node."
    }
   },
   {
@@ -24,14 +24,14 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    -480,
-    -160
+    -320,
+    -280
    ],
    "parameters": {
     "color": 7,
-    "width": 420,
-    "height": 300,
-    "content": "## 1. Configure\nYour input URL and item count live in one Set node."
+    "width": 700,
+    "height": 560,
+    "content": "## 1. Configure\nCompetitors, how many ads to read per competitor and the Slack channel all live in one Set node."
    }
   },
   {
@@ -40,14 +40,14 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    -40,
-    -160
+    400,
+    -280
    ],
    "parameters": {
     "color": 7,
-    "width": 420,
-    "height": 520,
-    "content": "## 2. Scrape and wait\nStart the Apify scraper run, then poll it every few seconds until it finishes."
+    "width": 960,
+    "height": 840,
+    "content": "## 2. Fetch and transcribe\nOne competitor at a time: scrape the Ad Library, wait for the run, then transcribe that run's dataset."
    }
   },
   {
@@ -56,14 +56,14 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    400,
-    -160
+    1400,
+    -280
    ],
    "parameters": {
     "color": 7,
-    "width": 640,
-    "height": 300,
-    "content": "## 3. Transcribe and shape rows\nHand the run's dataset ID to the transcript actor, then build one row per item."
+    "width": 520,
+    "height": 720,
+    "content": "## 3. Keep only what is new\nRemove Duplicates remembers every ad ID from previous executions, so a weekly run reports new creatives only."
    }
   },
   {
@@ -72,25 +72,82 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    1060,
-    -160
+    1960,
+    -280
    ],
    "parameters": {
     "color": 7,
-    "width": 240,
-    "height": 300,
-    "content": "## 4. Save\nAppend the rows to Google Sheets."
+    "width": 400,
+    "height": 700,
+    "content": "## 4. Analyse with AI\nThe model labels the hook, the offer, the CTA and the persona. Swap Groq for OpenAI or Anthropic."
    }
   },
   {
+   "id": "sticky-sec-5",
+   "name": "Section 5",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    2400,
+    -280
+   ],
+   "parameters": {
+    "color": 7,
+    "width": 700,
+    "height": 400,
+    "content": "## 5. Save\nOne tidy row per new ad is appended to your Google Sheet."
+   }
+  },
+  {
+   "id": "sticky-sec-6",
+   "name": "Section 6",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    3120,
+    -280
+   ],
+   "parameters": {
+    "color": 7,
+    "width": 700,
+    "height": 400,
+    "content": "## 6. Alert\nThe five longest new hooks go to Slack as one message."
+   }
+  },
+  {
+   "parameters": {
+    "rule": {
+     "interval": [
+      {
+       "field": "weeks",
+       "weeksInterval": 1,
+       "triggerAtDay": [
+        1
+       ],
+       "triggerAtHour": 8,
+       "triggerAtMinute": 0
+      }
+     ]
+    }
+   },
+   "id": "sch-0001",
+   "name": "Every Monday morning",
+   "type": "n8n-nodes-base.scheduleTrigger",
+   "typeVersion": 1.4,
+   "position": [
+    -260,
+    -140
+   ]
+  },
+  {
    "parameters": {},
-   "id": "5e2c0001-0000-4000-8000-000000000001",
+   "id": "man-0002",
    "name": "When clicking 'Test workflow'",
    "type": "n8n-nodes-base.manualTrigger",
    "typeVersion": 1,
    "position": [
-    -440,
-    0
+    -260,
+    60
    ]
   },
   {
@@ -98,55 +155,87 @@
     "assignments": {
      "assignments": [
       {
-       "id": "cfg-url",
-       "name": "adLibraryUrl",
-       "value": "https://www.linkedin.com/ad-library/search?accountOwner=hubspot&countries=US&dateOption=last-30-days",
+       "id": "cfg-competitors",
+       "name": "competitors",
+       "value": "https://www.linkedin.com/ad-library/search?accountOwner=hubspot&countries=US&dateOption=last-30-days\nhttps://www.linkedin.com/ad-library/search?accountOwner=salesforce&countries=US&dateOption=last-30-days",
        "type": "string"
       },
       {
        "id": "cfg-max",
-       "name": "maxAds",
-       "value": 25,
+       "name": "maxAdsPerCompetitor",
+       "value": 10,
        "type": "number"
+      },
+      {
+       "id": "cfg-slack",
+       "name": "slackChannel",
+       "value": "competitive-intel",
+       "type": "string"
       }
      ]
     },
     "options": {}
    },
-   "id": "5e2c0002-0000-4000-8000-000000000002",
+   "id": "set-0003",
    "name": "Config",
    "type": "n8n-nodes-base.set",
    "typeVersion": 3.4,
    "position": [
-    -220,
-    0
-   ],
-   "notes": "adLibraryUrl = a LinkedIn Ad Library search URL (https://www.linkedin.com/ad-library/search?accountOwner=…&countries=…&dateOption=…) or a company URL like https://www.linkedin.com/company/hubspot/. maxAds = how many ads to pull from the Ad Library (video ads are transcribed; image ads have their on-image copy read).",
-   "notesInFlow": true
+    -40,
+    -40
+   ]
   },
   {
    "parameters": {
-    "method": "POST",
-    "url": "=https://api.apify.com/v2/acts/silva95gustavo~linkedin-ad-library-scraper/runs?waitForFinish=60",
-    "sendBody": true,
-    "specifyBody": "json",
-    "jsonBody": "={{ JSON.stringify({ startUrls: [{ url: $('Config').first().json.adLibraryUrl }], resultsLimit: $('Config').first().json.maxAds }) }}",
+    "jsCode": "// One item per competitor Ad Library URL, so the loop below handles them one at a time.\nconst raw = String($json.competitors || '');\nconst targets = raw.split(/\\r?\\n|,/).map((t) => t.trim()).filter(Boolean);\nif (!targets.length) {\n  throw new Error('No competitor Ad Library URL set. Open the Config node and add at least one.');\n}\nreturn targets.map((target) => ({ json: { target } }));"
+   },
+   "id": "code-0004",
+   "name": "Competitors, one per item",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    180,
+    -40
+   ]
+  },
+  {
+   "parameters": {
+    "batchSize": 1,
+    "options": {}
+   },
+   "id": "loop-0005",
+   "name": "Loop over competitors",
+   "type": "n8n-nodes-base.splitInBatches",
+   "typeVersion": 3,
+   "position": [
+    400,
+    -40
+   ]
+  },
+  {
+   "parameters": {
     "options": {
      "timeout": 120000
     },
     "authentication": "genericCredentialType",
-    "genericAuthType": "httpHeaderAuth"
+    "genericAuthType": "httpHeaderAuth",
+    "method": "POST",
+    "url": "=https://api.apify.com/v2/acts/silva95gustavo~linkedin-ad-library-scraper/runs?waitForFinish=60",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ startUrls: [{ url: $json.target }], resultsLimit: $('Config').first().json.maxAdsPerCompetitor }) }}"
    },
-   "id": "5e2c0003-0000-4000-8000-000000000003",
-   "name": "Scrape the Ad Library (advertiser)",
+   "id": "http-0006",
+   "name": "Scrape this competitor's Ad Library",
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    0,
-    0
+    620,
+    200
    ],
-   "notes": "Starts silva95gustavo/linkedin-ad-library-scraper and waits up to 60s. Returns the run object — we only need data.defaultDatasetId. To use another Ad Library scraper, swap the actor slug + the JSON body to its input fields.",
-   "notesInFlow": true
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000
   },
   {
    "parameters": {
@@ -158,7 +247,7 @@
      },
      "conditions": [
       {
-       "id": "run-finished",
+       "id": "cond-0007",
        "leftValue": "={{ ['SUCCEEDED', 'FAILED', 'ABORTED', 'TIMED-OUT'].includes($json.data.status) }}",
        "rightValue": true,
        "operator": {
@@ -172,70 +261,205 @@
     },
     "options": {}
    },
-   "id": "5e2c0004-0000-4000-8000-000000000004",
+   "id": "if-0008",
    "name": "Scrape finished?",
    "type": "n8n-nodes-base.if",
    "typeVersion": 2,
    "position": [
-    220,
-    0
+    840,
+    200
    ]
   },
   {
    "parameters": {
-    "url": "=https://api.apify.com/v2/actor-runs/{{ $json.data.id }}?waitForFinish=60",
     "options": {
      "timeout": 120000
     },
     "authentication": "genericCredentialType",
-    "genericAuthType": "httpHeaderAuth"
+    "genericAuthType": "httpHeaderAuth",
+    "url": "=https://api.apify.com/v2/actor-runs/{{ $json.data.id }}?waitForFinish=60"
    },
-   "id": "5e2c0005-0000-4000-8000-000000000005",
-   "name": "Wait for scrape (poll run)",
+   "id": "http-0009",
+   "name": "Wait for the scrape",
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    220,
-    220
+    840,
+    420
    ],
-   "notes": "Loops back until the scraper run finishes (each poll waits up to 60s server-side).",
-   "notesInFlow": true
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000
   },
   {
    "parameters": {
-    "method": "POST",
-    "url": "=https://api.apify.com/v2/acts/steadyfetch~linkedin-ads-transcript-scraper/run-sync-get-dataset-items",
-    "sendBody": true,
-    "specifyBody": "json",
-    "jsonBody": "={{ JSON.stringify({ datasetId: $json.data.defaultDatasetId, maxItems: $('Config').first().json.maxAds }) }}",
     "options": {
      "timeout": 300000
     },
     "authentication": "genericCredentialType",
-    "genericAuthType": "httpHeaderAuth"
+    "genericAuthType": "httpHeaderAuth",
+    "method": "POST",
+    "url": "=https://api.apify.com/v2/acts/steadyfetch~linkedin-ads-transcript-scraper/run-sync-get-dataset-items",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ datasetId: $json.data.defaultDatasetId, maxItems: $('Config').first().json.maxAdsPerCompetitor }) }}"
    },
-   "id": "5e2c0006-0000-4000-8000-000000000006",
-   "name": "Transcribe video ads by dataset ID: hooks & transcripts",
+   "id": "http-0010",
+   "name": "Transcribe the video ads",
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    440,
-    0
+    1080,
+    200
    ],
-   "notes": "Chains steadyfetch/linkedin-ads-transcript-scraper on the scraper run's dataset ID (no ad rows pass through n8n, so big batches stay light). Video ads come back transcribed (transcript + first-3s hook + advertiser metadata); image ads come back with their on-image copy read; document, carousel and text-only creatives pass through as uncharged metadata rows. Charged only when text is delivered.",
-   "notesInFlow": true
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "alwaysOutputData": true
   },
   {
    "parameters": {
-    "jsCode": "// One teardown row per ad. Transcribed video ads first, longest first; image/text ads at the bottom.\nconst rows = $input.all().map(({ json: ad }) => {\n  const transcript = ad.transcript || '';\n  const words = transcript.trim() ? transcript.trim().split(/\\s+/).length : 0;\n  return {\n    advertiser: ad.advertiser || '',\n    headline: ad.headline || '',\n    ad_id: ad.adId || '',\n    format: ad.format || '',\n    status: ad.status || '',\n    hook_first_3s: ad.hook3s || '',\n    seconds: ad.durationSeconds ?? null,\n    transcript_words: words,\n    language: ad.language || '',\n    charged: ad.charged === true,\n    transcript,\n    ad_text: ad.adText || '',\n    paying_entity: ad.payingEntity || '',\n    impressions: ad.impressions || '',\n    availability: ad.availability || '',\n    detail_url: ad.detailUrl || '',\n    note: ad.statusReason || '',\n  };\n});\n\nrows.sort((a, b) => (b.status === 'transcribed') - (a.status === 'transcribed') || (b.seconds || 0) - (a.seconds || 0));\n\nreturn rows.map((row) => ({ json: row }));"
+    "operation": "removeItemsSeenInPreviousExecutions",
+    "logic": "removeItemsWithAlreadySeenKeyValues",
+    "dedupeValue": "={{ $json.adId || 'no-ads-this-run' }}",
+    "options": {}
    },
-   "id": "5e2c0007-0000-4000-8000-000000000007",
-   "name": "Teardown rows: one per ad",
+   "id": "dedup-0011",
+   "name": "Only ads we have not seen before",
+   "type": "n8n-nodes-base.removeDuplicates",
+   "typeVersion": 2,
+   "position": [
+    1480,
+    -40
+   ],
+   "alwaysOutputData": true
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "cond-0012",
+       "leftValue": "={{ !!$json.adId }}",
+       "rightValue": true,
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "if-0013",
+   "name": "Any new ads?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    1700,
+    -40
+   ]
+  },
+  {
+   "parameters": {},
+   "id": "noop-0014",
+   "name": "Nothing new this week",
+   "type": "n8n-nodes-base.noOp",
+   "typeVersion": 1,
+   "position": [
+    1700,
+    240
+   ]
+  },
+  {
+   "parameters": {
+    "text": "={{ 'Advertiser: ' + ($json.advertiser || 'unknown') + '\\nHeadline: ' + ($json.headline || '') + '\\nAd text: ' + ($json.adText || '') + '\\nSpoken transcript: ' + ($json.transcript || '(this ad has no speech)') }}",
+    "attributes": {
+     "attributes": [
+      {
+       "name": "hook_type",
+       "type": "string",
+       "description": "How the ad opens. One of: question, statistic, pain-point, story, bold-claim, other.",
+       "required": false
+      },
+      {
+       "name": "offer",
+       "type": "string",
+       "description": "What the ad asks the viewer to get or do, in a few words. Empty if there is none.",
+       "required": false
+      },
+      {
+       "name": "cta_type",
+       "type": "string",
+       "description": "The call to action type, for example demo, free trial, download, webinar, contact sales, none.",
+       "required": false
+      },
+      {
+       "name": "target_persona",
+       "type": "string",
+       "description": "The job role or buyer the ad is speaking to, in a few words.",
+       "required": false
+      },
+      {
+       "name": "angle_summary",
+       "type": "string",
+       "description": "The ad's angle in 20 words or fewer.",
+       "required": false
+      },
+      {
+       "name": "why_it_works",
+       "type": "string",
+       "description": "Why this hook holds attention, in 25 words or fewer.",
+       "required": false
+      }
+     ]
+    },
+    "options": {
+     "systemPromptTemplate": "You analyse B2B LinkedIn video ads for a competitive intelligence sheet. Answer only from the ad text given. If the ad has no speech, base your answer on the headline and ad text."
+    }
+   },
+   "id": "ai-0015",
+   "name": "Classify the hook and offer",
+   "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+   "typeVersion": 1.2,
+   "position": [
+    2020,
+    -40
+   ],
+   "onError": "continueRegularOutput"
+  },
+  {
+   "parameters": {
+    "model": "openai/gpt-oss-120b",
+    "options": {}
+   },
+   "id": "groq-0016",
+   "name": "Groq chat model",
+   "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+   "typeVersion": 1,
+   "position": [
+    1980,
+    180
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "// The AI node replaces each item with its extracted attributes, so put the\n// original row back together with them. Items come back in the same order.\nconst source = $('Any new ads?').all();\nreturn $input.all().map((item, i) => {\n  const row = { ...(source[i] ? source[i].json : {}) };\n  const ai = item.json.output || {};\n  const transcript = row.transcript || '';\n  row.transcript_words = transcript.trim() ? transcript.trim().split(/\\s+/).length : 0;\n  row.seconds = row.durationSeconds ?? null;\n  return { json: { ...row, ...ai } };\n});"
+   },
+   "id": "code-0017",
+   "name": "Build one row per ad",
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    660,
-    0
+    2440,
+    -40
    ]
   },
   {
@@ -243,108 +467,128 @@
     "assignments": {
      "assignments": [
       {
-       "id": "t-adv",
+       "id": "c-1",
        "name": "advertiser",
        "value": "={{ $json.advertiser }}",
        "type": "string"
       },
       {
-       "id": "t-head",
+       "id": "c-2",
+       "name": "ad_id",
+       "value": "={{ $json.adId }}",
+       "type": "string"
+      },
+      {
+       "id": "c-3",
        "name": "headline",
        "value": "={{ $json.headline }}",
        "type": "string"
       },
       {
-       "id": "t-id",
-       "name": "ad_id",
-       "value": "={{ $json.ad_id }}",
+       "id": "c-4",
+       "name": "hook_type",
+       "value": "={{ $json.hook_type }}",
        "type": "string"
       },
       {
-       "id": "t-format",
-       "name": "format",
-       "value": "={{ $json.format }}",
-       "type": "string"
-      },
-      {
-       "id": "t-status",
-       "name": "status",
-       "value": "={{ $json.status }}",
-       "type": "string"
-      },
-      {
-       "id": "t-hook",
+       "id": "c-5",
        "name": "hook_first_3s",
-       "value": "={{ $json.hook_first_3s }}",
+       "value": "={{ $json.hook3s }}",
        "type": "string"
       },
       {
-       "id": "t-sec",
+       "id": "c-6",
+       "name": "offer",
+       "value": "={{ $json.offer }}",
+       "type": "string"
+      },
+      {
+       "id": "c-7",
+       "name": "cta_type",
+       "value": "={{ $json.cta_type }}",
+       "type": "string"
+      },
+      {
+       "id": "c-8",
+       "name": "target_persona",
+       "value": "={{ $json.target_persona }}",
+       "type": "string"
+      },
+      {
+       "id": "c-9",
+       "name": "angle_summary",
+       "value": "={{ $json.angle_summary }}",
+       "type": "string"
+      },
+      {
+       "id": "c-10",
+       "name": "why_it_works",
+       "value": "={{ $json.why_it_works }}",
+       "type": "string"
+      },
+      {
+       "id": "c-11",
        "name": "seconds",
        "value": "={{ $json.seconds }}",
        "type": "number"
       },
       {
-       "id": "t-words",
+       "id": "c-12",
        "name": "transcript_words",
        "value": "={{ $json.transcript_words }}",
        "type": "number"
       },
       {
-       "id": "t-lang",
+       "id": "c-13",
        "name": "language",
        "value": "={{ $json.language }}",
        "type": "string"
       },
       {
-       "id": "t-charged",
+       "id": "c-14",
+       "name": "status",
+       "value": "={{ $json.status }}",
+       "type": "string"
+      },
+      {
+       "id": "c-15",
        "name": "charged",
        "value": "={{ $json.charged }}",
        "type": "boolean"
       },
       {
-       "id": "t-text",
+       "id": "c-16",
        "name": "transcript",
        "value": "={{ $json.transcript }}",
        "type": "string"
       },
       {
-       "id": "t-detail",
+       "id": "c-17",
        "name": "detail_url",
-       "value": "={{ $json.detail_url }}",
+       "value": "={{ $json.detailUrl }}",
        "type": "string"
       }
      ]
     },
     "options": {}
    },
-   "id": "5e2c0008-0000-4000-8000-000000000008",
-   "name": "Teardown table (one row per item)",
+   "id": "set-0018",
+   "name": "Column order",
    "type": "n8n-nodes-base.set",
    "typeVersion": 3.4,
    "position": [
-    880,
-    0
-   ],
-   "notes": "Terminal step: a clean spreadsheet-shaped row per ad. Wire Google Sheets / Airtable / Slack / a database after this node.",
-   "notesInFlow": true
+    2660,
+    -40
+   ]
   },
   {
-   "id": "append-google-sheets",
-   "name": "Append rows to Google Sheets",
-   "type": "n8n-nodes-base.googleSheets",
-   "typeVersion": 4.7,
-   "position": [
-    1100,
-    0
-   ],
    "parameters": {
     "operation": "append",
     "documentId": {
      "__rl": true,
      "mode": "list",
      "value": "",
-     "cachedResultName": "Ad transcripts"
+     "cachedResultName": "LinkedIn ad hooks"
     },
     "sheetName": {
      "__rl": true,
@@ -359,10 +603,79 @@
      "schema": []
     },
     "options": {}
-   }
+   },
+   "id": "gs-0019",
+   "name": "Append the new rows to Google Sheets",
+   "type": "n8n-nodes-base.googleSheets",
+   "typeVersion": 4.7,
+   "position": [
+    2880,
+    -40
+   ]
+  },
+  {
+   "parameters": {
+    "aggregate": "aggregateAllItemData",
+    "destinationFieldName": "rows",
+    "options": {}
+   },
+   "id": "agg-0020",
+   "name": "Collect the new ads",
+   "type": "n8n-nodes-base.aggregate",
+   "typeVersion": 1,
+   "position": [
+    3160,
+    -40
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "// Top five new hooks, longest ad first.\nconst rows = $input.first().json.rows || [];\nconst top = rows.slice().sort((a, b) => (b.seconds || 0) - (a.seconds || 0)).slice(0, 5);\nconst lines = top.map((r) => `• ${r.advertiser || 'Unknown'} — ${r.hook_type || 'hook'}: \"${(r.hook_first_3s || '').trim() || 'no speech'}\"`);\nconst digest = [\n  `*${rows.length} new LinkedIn video ad${rows.length === 1 ? '' : 's'} this week*`,\n  '',\n  ...lines,\n].join('\\n');\nreturn [{ json: { digest, new_ads: rows.length } }];"
+   },
+   "id": "code-0021",
+   "name": "Write the Slack digest",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    3380,
+    -40
+   ]
+  },
+  {
+   "parameters": {
+    "resource": "message",
+    "operation": "post",
+    "select": "channel",
+    "channelId": {
+     "__rl": true,
+     "mode": "name",
+     "value": "=#{{ $('Config').first().json.slackChannel }}"
+    },
+    "text": "={{ $json.digest }}",
+    "otherOptions": {}
+   },
+   "id": "slack-0022",
+   "name": "Post the digest to Slack",
+   "type": "n8n-nodes-base.slack",
+   "typeVersion": 2.7,
+   "position": [
+    3600,
+    -40
+   ]
   }
  ],
  "connections": {
+  "Every Monday morning": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
   "When clicking 'Test workflow'": {
    "main": [
     [
@@ -378,14 +691,43 @@
    "main": [
     [
      {
-      "node": "Scrape the Ad Library (advertiser)",
+      "node": "Competitors, one per item",
       "type": "main",
       "index": 0
      }
     ]
    ]
   },
-  "Scrape the Ad Library (advertiser)": {
+  "Competitors, one per item": {
+   "main": [
+    [
+     {
+      "node": "Loop over competitors",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Loop over competitors": {
+   "main": [
+    [
+     {
+      "node": "Only ads we have not seen before",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Scrape this competitor's Ad Library",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Scrape this competitor's Ad Library": {
    "main": [
     [
      {
@@ -400,21 +742,21 @@
    "main": [
     [
      {
-      "node": "Transcribe video ads by dataset ID: hooks & transcripts",
+      "node": "Transcribe the video ads",
       "type": "main",
       "index": 0
      }
     ],
     [
      {
-      "node": "Wait for scrape (poll run)",
+      "node": "Wait for the scrape",
       "type": "main",
       "index": 0
      }
     ]
    ]
   },
-  "Wait for scrape (poll run)": {
+  "Wait for the scrape": {
    "main": [
     [
      {
@@ -425,34 +767,118 @@
     ]
    ]
   },
-  "Transcribe video ads by dataset ID: hooks & transcripts": {
+  "Transcribe the video ads": {
    "main": [
     [
      {
-      "node": "Teardown rows: one per ad",
+      "node": "Loop over competitors",
       "type": "main",
       "index": 0
      }
     ]
    ]
   },
-  "Teardown rows: one per ad": {
+  "Only ads we have not seen before": {
    "main": [
     [
      {
-      "node": "Teardown table (one row per item)",
+      "node": "Any new ads?",
       "type": "main",
       "index": 0
      }
     ]
    ]
   },
-  "Teardown table (one row per item)": {
+  "Any new ads?": {
    "main": [
     [
      {
-      "node": "Append rows to Google Sheets",
+      "node": "Classify the hook and offer",
       "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Nothing new this week",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Classify the hook and offer": {
+   "main": [
+    [
+     {
+      "node": "Build one row per ad",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Build one row per ad": {
+   "main": [
+    [
+     {
+      "node": "Column order",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Column order": {
+   "main": [
+    [
+     {
+      "node": "Append the new rows to Google Sheets",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Append the new rows to Google Sheets": {
+   "main": [
+    [
+     {
+      "node": "Collect the new ads",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Collect the new ads": {
+   "main": [
+    [
+     {
+      "node": "Write the Slack digest",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Write the Slack digest": {
+   "main": [
+    [
+     {
+      "node": "Post the digest to Slack",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Groq chat model": {
+   "ai_languageModel": [
+    [
+     {
+      "node": "Classify the hook and offer",
+      "type": "ai_languageModel",
       "index": 0
      }
     ]
@@ -462,5 +888,8 @@
  "settings": {
   "executionOrder": "v1"
  },
- "pinData": {}
+ "pinData": {},
+ "meta": {
+  "templateCredsSetupCompleted": true
+ }
 }
